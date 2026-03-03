@@ -26,3 +26,5 @@ Now you should be able to run the script with
 ```Bash
 python3 main.py
 ```
+
+The first time the script is run, it will prompt you to log in with your google account. 

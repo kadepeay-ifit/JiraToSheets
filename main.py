@@ -1,5 +1,8 @@
 import matplotlib.pyplot as plt
 import os.path
+from datetime import datetime
+import requests 
+from bs4 import BeautifulSoup
 
 # Imports for google API
 from google.auth.transport.requests import Request
@@ -52,6 +55,27 @@ def main():
             return
 
         # Keep track of status counts
+        status_counts = create_dict(values)
+
+        # Save pie chart
+        # make_pi_chart(status_counts)
+    
+    except HttpError as err:
+        print(err)
+
+def make_pi_chart(status_counts):
+        colors = ['green', 'red', 'blue', 'yellow', 'purple', 'orange', 'black']
+        plt.pie(status_counts.values(), labels=status_counts.keys(), autopct='%1.1f%%', startangle=45, rotatelabels=True, colors=colors) 
+        plt.title("Pie Chart")
+
+        # Save the pie chart with datetime in ISO format
+        current_datetime = datetime.now()
+        formated_datetime = current_datetime.strftime("%Y-%m-%d %H:%M:%S")
+        plt.savefig(f"{formated_datetime}")
+
+# Create a python dictionary object from values grabbed from google sheets page
+def create_dict(values):
+    # Keep track of status counts
         status_counts = {
             'PASSED': 0,
             'FAILED': 0,
@@ -59,23 +83,16 @@ def main():
             'In Progress': 0,
             'Monitoring': 0,
             'Blocked': 0,
+            '': 0, # This one helps handle blank entries
         }
-    
-        # Print out read values
-        print("Ticket, Status:")
+
         for row in values:
             try:
-                print(f"{row[0]}, {row[5]}")
                 status_counts[row[5]] += 1
             except IndexError:
                 print("Invalid row: Missing data")
 
-        # plt.pie(status_counts.values) 
-        # plt.title("Pie Chart")
-        # plt.show()
-    
-    except HttpError as err:
-        print(err)
+        return status_counts
 
 if __name__ == "__main__":
     main()
