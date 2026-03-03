@@ -51,14 +51,42 @@ def main():
             print("No data found.")
             return
 
+        # Keep track of status counts
+        passed = 0
+        failed = 0
+        untestable = 0
+        in_progress = 0
+        monitoring = 0
+        blocked = 0
     
         # Print out read values
         print("Ticket, Status:")
         for row in values:
             try:
+                # TODO: this feels inefficient
+                if(row[5] == 'PASSED'): 
+                    passed += 1
+                if(row[5] == 'FAILED'): 
+                    failed += 1
+                if(row[5] == 'Untestable'): 
+                    untestable += 1
+                if(row[5] == 'In Progress'): 
+                    in_progress += 1
+                if(row[5] == 'Monitoring'): 
+                    monitoring += 1
+                if(row[5] == 'Blocked'): 
+                    blocked += 1
+
                 print(f"{row[0]}, {row[5]}")
             except IndexError:
                 print("Invalid row: Missing data")
+
+
+        print(f" Passed: {passed}\n Failed: {failed}\n Untestable: {untestable}\n In Progress: {in_progress}\n Monitoring: {monitoring}\n Blocked: {blocked}")
+
+        plt.pie([passed, failed, untestable, in_progress, monitoring, blocked], labels=['Passed', 'Failed', 'Untestable', 'In Progress', 'Monitoring', 'Blocked']) 
+        plt.title("Pie Chart")
+        plt.show()
     
     except HttpError as err:
         print(err)
