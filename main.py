@@ -54,6 +54,11 @@ def main():
             print("No data found.")
             return
 
+
+
+        # Check status of Jira ticket
+        
+
         # Keep track of status counts
         status_counts = create_dict(values)
 
@@ -63,6 +68,22 @@ def main():
     except HttpError as err:
         print(err)
 
+# Check status on Jira side
+def check_jira_ticket_status(ticket_id):
+     url = f"https://ifitdev.atlassian.net/browse/{ticket_id}"
+     response = requests.get(url)
+     html_content = response.content 
+
+     with open("html_content.html", "w") as file:
+          file.write(html_content)     
+
+     # Search html for specific ticket status value
+     # Saved in a class named css-178ag6o
+     soup = BeautifulSoup(html_content, "html.parser")
+     ticket_status = soup.find('span', class_='css-178ag6o')
+     return ticket_status
+
+# Create and save a pie chart based off of the stability of the sheet
 def make_pi_chart(status_counts):
         colors = ['green', 'red', 'blue', 'yellow', 'purple', 'orange', 'black']
         plt.pie(status_counts.values(), labels=status_counts.keys(), autopct='%1.1f%%', startangle=45, rotatelabels=True, colors=colors) 
@@ -71,7 +92,7 @@ def make_pi_chart(status_counts):
         # Save the pie chart with datetime in ISO format
         current_datetime = datetime.now()
         formated_datetime = current_datetime.strftime("%Y-%m-%d %H:%M:%S")
-        plt.savefig(f"{formated_datetime}")
+        plt.savefig(f"images/{formated_datetime}")
 
 # Create a python dictionary object from values grabbed from google sheets page
 def create_dict(values):
@@ -95,4 +116,5 @@ def create_dict(values):
         return status_counts
 
 if __name__ == "__main__":
-    main()
+     main()
+     check_jira_ticket_status('FRO-4800')

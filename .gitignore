@@ -1,5 +1,9 @@
+# Hide the important or user-specific stuff
 credentials.json 
 token.json
+
+# Hide the images to save space
+images/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
