@@ -2,7 +2,9 @@ import matplotlib.pyplot as plt
 import os.path
 from datetime import datetime
 import requests 
+from requests.auth import HTTPBasicAuth
 from bs4 import BeautifulSoup
+import json
 
 # Imports for google API
 from google.auth.transport.requests import Request
@@ -17,6 +19,11 @@ SCOPES = ["https://www.googleapis.com/auth/spreadsheets.readonly"]
 # The ID and range of a sample spreadsheet 
 SAMPLE_SPREADSHEET_ID = "1DDoeKkUs7LKQX8xrGrqkH83GyI4zFR1oW3wccayjbfw"
 SAMPLE_RANGE_NAME = "A2:H"
+
+# User authentication constants
+USER_EMAIL = "kade.peay@ifit.com"
+with open("apitoken.txt", "r") as file:
+     API_TOKEN = file.read()
 
 def main():
     creds = None
@@ -55,7 +62,6 @@ def main():
             return
 
 
-
         # Check status of Jira ticket
         
 
@@ -63,25 +69,30 @@ def main():
         status_counts = create_dict(values)
 
         # Save pie chart
-        # make_pi_chart(status_counts)
+        make_pi_chart(status_counts)
     
     except HttpError as err:
         print(err)
 
 # Check status on Jira side
 def check_jira_ticket_status(ticket_id):
-     url = f"https://ifitdev.atlassian.net/browse/{ticket_id}"
-     response = requests.get(url)
-     html_content = response.content 
+     url = f"https://ifitdev.atlassian.net/rest/api/3/issue/{ticket_id}"
+     headers = {
+          "Accept": "application/json",
+          "Content-Type": "application/json"
+     }
+     auth = HTTPBasicAuth(USER_EMAIL, API_TOKEN)
+     response = requests.get(url, headers=headers, auth=auth)
+     raw_ticket_json = response.content 
 
-     with open("html_content.html", "w") as file:
-          file.write(html_content)     
+     with open("response.json", "wb") as file:
+          file.write(raw_ticket_json)     
 
-     # Search html for specific ticket status value
-     # Saved in a class named css-178ag6o
-     soup = BeautifulSoup(html_content, "html.parser")
-     ticket_status = soup.find('span', class_='css-178ag6o')
-     return ticket_status
+     # Search json for the status of the ticket
+     ticket_dict = json.loads(raw_ticket_json)
+
+     # Ridiculous json 
+     return (ticket_dict["fields"]["statusCategory"]["name"])
 
 # Create and save a pie chart based off of the stability of the sheet
 def make_pi_chart(status_counts):
@@ -116,5 +127,5 @@ def create_dict(values):
         return status_counts
 
 if __name__ == "__main__":
-     main()
-     check_jira_ticket_status('FRO-4800')
+    #  main()
+     print(check_jira_ticket_status('TROL-4997'))
