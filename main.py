@@ -45,10 +45,8 @@ def main():
         with open("token.json", "w") as token:
             token.write(creds.to_json())
 
-
     try:
         service = build("sheets", "v4", credentials=creds)
-
 
         # Call the Sheets API
         sheet = service.spreadsheets()
@@ -61,18 +59,35 @@ def main():
             print("No data found.")
             return
 
-
-        # Check status of Jira ticket
+        # List of tickets
+        # Check Status on Jira
+        ticket_dict = create_dict(values)
         
+        # Update Sheets
 
-        # Keep track of status counts
-        status_counts = create_dict(values)
-
-        # Save pie chart
-        make_pi_chart(status_counts)
+        # Report Stats
+        # make_pi_chart(status_counts)
     
     except HttpError as err:
         print(err)
+
+# Create a dictionary of ticket names with the status of google sheets and jira as the values
+def create_dict(values): 
+     ticket_dict = {}
+     for row in values:
+          try:
+                ticket_name = row[0]
+                sheet_status = row[5]
+                ticket_dict[ticket_name] = {
+                     "Sheet Status": sheet_status,
+                     "Jira Status": check_jira_ticket_status(ticket_name)
+                }
+          except IndexError:
+               print(f"Error while creating dictionary. Problem row: {row}")
+
+     return ticket_dict
+
+
 
 # Check status on Jira side
 def check_jira_ticket_status(ticket_id):
@@ -85,14 +100,36 @@ def check_jira_ticket_status(ticket_id):
      response = requests.get(url, headers=headers, auth=auth)
      raw_ticket_json = response.content 
 
-     with open("response.json", "wb") as file:
-          file.write(raw_ticket_json)     
+    #  Option to save response data
+    #  with open("response.json", "wb") as file:
+    #       file.write(raw_ticket_json)     
 
      # Search json for the status of the ticket
      ticket_dict = json.loads(raw_ticket_json)
 
-     # Ridiculous json 
+     # Most Recent status name
      return (ticket_dict["fields"]["status"]["name"])
+
+# Count Frequency
+def status_frequency(ticket_dict):
+    # Keep track of status counts
+        status_counts = {
+            'PASSED': 0,
+            'FAILED': 0,
+            'Untestable': 0,
+            'In Progress': 0,
+            'Monitoring': 0,
+            'Blocked': 0,
+            '': 0, # This one helps handle blank entries
+        }
+
+        for row in ticket_dict:
+            try:
+                status_counts[row[5]] += 1
+            except IndexError:
+                print("Invalid row: Missing data")
+
+        return status_counts
 
 # Create and save a pie chart based off of the stability of the sheet
 def make_pi_chart(status_counts):
@@ -105,27 +142,5 @@ def make_pi_chart(status_counts):
         formated_datetime = current_datetime.strftime("%Y-%m-%d %H:%M:%S")
         plt.savefig(f"images/{formated_datetime}")
 
-# Create a python dictionary object from values grabbed from google sheets page
-def create_dict(values):
-    # Keep track of status counts
-        status_counts = {
-            'PASSED': 0,
-            'FAILED': 0,
-            'Untestable': 0,
-            'In Progress': 0,
-            'Monitoring': 0,
-            'Blocked': 0,
-            '': 0, # This one helps handle blank entries
-        }
-
-        for row in values:
-            try:
-                status_counts[row[5]] += 1
-            except IndexError:
-                print("Invalid row: Missing data")
-
-        return status_counts
-
 if __name__ == "__main__":
-    #  main()
-     print(check_jira_ticket_status('CRY-419'))
+     main()
