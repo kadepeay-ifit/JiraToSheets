@@ -92,7 +92,7 @@ def check_jira_ticket_status(ticket_id):
      ticket_dict = json.loads(raw_ticket_json)
 
      # Ridiculous json 
-     return (ticket_dict["fields"]["statusCategory"]["name"])
+     return (ticket_dict["fields"]["status"]["name"])
 
 # Create and save a pie chart based off of the stability of the sheet
 def make_pi_chart(status_counts):
@@ -128,4 +128,4 @@ def create_dict(values):
 
 if __name__ == "__main__":
     #  main()
-     print(check_jira_ticket_status('TROL-4997'))
+     print(check_jira_ticket_status('CRY-419'))
