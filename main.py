@@ -1,5 +1,6 @@
 import matplotlib.pyplot as plt
-import os.path
+import os
+from dotenv import load_dotenv
 from datetime import datetime
 import requests 
 from requests.auth import HTTPBasicAuth
@@ -20,10 +21,25 @@ SCOPES = ["https://www.googleapis.com/auth/spreadsheets.readonly"]
 SAMPLE_SPREADSHEET_ID = "1DDoeKkUs7LKQX8xrGrqkH83GyI4zFR1oW3wccayjbfw"
 SAMPLE_RANGE_NAME = "A2:H"
 
+
+# load_dotenv() will load variables from a local .env file during development.
+# In GitHub Actions, it will be ignored as there is no .env file,
+# and the variable is already set in the environment by the workflow file.
+load_dotenv() 
+
 # User authentication constants
-USER_EMAIL = "kade.peay@ifit.com"
-with open("apitoken.txt", "r") as file:
-     API_TOKEN = file.read()
+API_TOKEN = os.getenv('API_TOKEN')
+USER_EMAIL = os.getenv('USER_EMAIL')
+
+if API_TOKEN is None:
+     print("Error: API key not found in environment variables.\n")
+else:
+     print("API Key successfully loaded.\n")
+
+if USER_EMAIL is None: 
+     print("Error: User Email not found in environment variables.\n")
+else:
+     print("User Email successfully loaded.\n")
 
 def main():
     creds = None
@@ -56,12 +72,14 @@ def main():
         values = result.get("values", [])
 
         if not values:
-            print("No data found.")
+            print("No data found.\n")
             return
 
         # List of tickets
         # Check Status on Jira
         ticket_dict = create_dict(values)
+
+        print(caclulate_difference(ticket_dict))
         
         # Update Sheets
 
@@ -70,6 +88,17 @@ def main():
     
     except HttpError as err:
         print(err)
+
+# TODO: Need a translation middle layer
+def caclulate_difference(ticket_dict):
+     difference = 0
+     for ticket, ticket_data in ticket_dict.items():
+          sheet = ticket_data["Sheet Status"]
+          jira = ticket_data["Jira Status"]
+          print(f"Sheet: {sheet}, Jira: {jira}\n")
+          if(sheet != jira): 
+               difference += 1
+     return f"{(difference / len(ticket_dict)) * 100}%"
 
 # Create a dictionary of ticket names with the status of google sheets and jira as the values
 def create_dict(values): 
@@ -80,11 +109,12 @@ def create_dict(values):
                 sheet_status = row[5]
                 ticket_dict[ticket_name] = {
                      "Sheet Status": sheet_status,
-                     "Jira Status": check_jira_ticket_status(ticket_name)
+                     "Jira Status": check_jira_ticket_status(ticket_name) # TODO: Perhaps here is where the translation layer should live
                 }
           except IndexError:
-               print(f"Error while creating dictionary. Problem row: {row}")
+               print(f"Error while creating dictionary. Problem row: {row}\n")
 
+     print("Ticket Dictionary Created Successfully.\n")
      return ticket_dict
 
 
@@ -99,10 +129,6 @@ def check_jira_ticket_status(ticket_id):
      auth = HTTPBasicAuth(USER_EMAIL, API_TOKEN)
      response = requests.get(url, headers=headers, auth=auth)
      raw_ticket_json = response.content 
-
-    #  Option to save response data
-    #  with open("response.json", "wb") as file:
-    #       file.write(raw_ticket_json)     
 
      # Search json for the status of the ticket
      ticket_dict = json.loads(raw_ticket_json)
@@ -127,8 +153,9 @@ def status_frequency(ticket_dict):
             try:
                 status_counts[row[5]] += 1
             except IndexError:
-                print("Invalid row: Missing data")
+                print("Invalid row: Missing data\n")
 
+        print("Status Frequency Counted Successfully.\n")
         return status_counts
 
 # Create and save a pie chart based off of the stability of the sheet
@@ -142,5 +169,8 @@ def make_pi_chart(status_counts):
         formated_datetime = current_datetime.strftime("%Y-%m-%d %H:%M:%S")
         plt.savefig(f"images/{formated_datetime}")
 
+        print(f"Saved figure to images/{formated_datetime}.\n")
+
 if __name__ == "__main__":
+     print() # I like whitespace at the beginning of my output
      main()
