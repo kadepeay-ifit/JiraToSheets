@@ -1,0 +1,20 @@
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+          
+      - name: Install dependencies
+        run: pip install python-dotenv # python-dotenv is still useful for local dev
+
+      - name: Execute Python script
+        # Map the GitHub secret to an environment variable the script can read
+        env:
+          API_KEY_SECRET: ${{ secrets.MY_API_KEY }}
+        run: python main.py
