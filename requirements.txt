@@ -5,6 +5,5 @@ google-auth-httplib2
 google-auth-oauthlib
 requests
 datetime
-json
 dotenv
 tqdm

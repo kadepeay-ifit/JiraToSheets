@@ -24,6 +24,9 @@ SCOPES = ["https://www.googleapis.com/auth/spreadsheets.readonly"]
 SAMPLE_SPREADSHEET_ID = "1DDoeKkUs7LKQX8xrGrqkH83GyI4zFR1oW3wccayjbfw"
 SAMPLE_RANGE_NAME = "A2:H"
 
+# Upate to current build number for accurate naming
+BUILD = "Retail-2026-02"
+
 # load_dotenv() will load variables from a local .env file during development.
 # In GitHub Actions, it will be ignored as there is no .env file,
 # and the variable is already set in the environment by the workflow file.
@@ -85,6 +88,7 @@ def main():
         
         # TODO: Update Sheets
 
+
         # Report Stats
         status_counts = status_frequency(ticket_dict)
         make_pi_chart(status_counts)
@@ -92,7 +96,18 @@ def main():
     except HttpError as err:
         print(err)
 
+# Calculate the difference between ticket values on the Tracker and in Jira
 def caclulate_difference(ticket_dict):
+     """
+     Calculate the percentage of tickets with mismatched statuses between Sheet and Jira.
+     Args:
+          ticket_dict (dict): A dictionary where each value contains ticket data with 
+                                 "Sheet Status" and "Jira Status" keys.
+     Returns:
+          str: A string representation of the percentage of tickets with differing statuses,
+                rounded to 2 decimal places (e.g., "25.50%").
+     """
+
      difference = 0
      for _, ticket_data in tqdm(ticket_dict.items(), "Calculating Difference"):
           sheet = ticket_data["Sheet Status"]
@@ -104,6 +119,28 @@ def caclulate_difference(ticket_dict):
 
 # Create a dictionary of ticket names with the status of google sheets and jira as the values
 def create_dict(values): 
+     """
+     Create a dictionary mapping ticket names to their status information from both Sheets and Jira.
+     
+     Args:
+          values (list): A list of rows where each row contains ticket information.
+                           Expected format: row[0] = ticket_name, row[5] = sheet_status
+     
+     Returns:
+          dict: A dictionary with ticket names as keys and status information as values.
+                 Each value is a dict with:
+                 - "Sheet Status": The status from the sheet (lowercase), defaults to 'in progress' if not provided
+                 - "Jira Status": The translated Jira status (lowercase)
+     
+     Raises:
+          Prints error message if IndexError occurs while processing a row, but continues execution.
+     
+     Note:
+          - Uses tqdm to display progress bar during dictionary creation
+          - Requires check_jira_ticket_status() function and status_mapping.MAP for translations
+          - Handles missing or empty status values gracefully with a default value
+     """
+
      ticket_dict = {}
      for row in tqdm(values, "Creating Dictionary"):
           try:
@@ -126,6 +163,24 @@ def create_dict(values):
 
 # Check status on Jira side
 def check_jira_ticket_status(ticket_id):
+     """
+     Retrieve the current status of a Jira ticket.
+     
+     Makes a REST API call to the Atlassian Jira instance to fetch ticket details
+     and extracts the status field from the response.
+     
+     Args:
+          ticket_id (str): The unique identifier of the Jira ticket.
+     
+     Returns:
+          str: The name of the ticket's current status (e.g., "To Do", "In Progress", "Done").
+     
+     Raises:
+          requests.exceptions.RequestException: If the HTTP request fails.
+          json.JSONDecodeError: If the response cannot be parsed as JSON.
+          KeyError: If the expected status field is not found in the response.
+     """
+
      url = f"https://ifitdev.atlassian.net/rest/api/3/issue/{ticket_id}"
      headers = {
           "Accept": "application/json",
@@ -141,39 +196,82 @@ def check_jira_ticket_status(ticket_id):
      # Most Recent status name
      return (ticket_dict["fields"]["status"]["name"])
 
-# Count Frequency
+# Count Frequency of each status type
 def status_frequency(ticket_dict):
+     """
+     Count the frequency of each status in the ticket dictionary.
+     This function iterates through a dictionary of tickets and tallies the number
+     of occurrences for each status type. It tracks six status categories: passed,
+     failed, untestable, in progress, monitoring, and blocked.
+     Args:
+          ticket_dict (dict): A dictionary where keys are row identifiers and values
+                                 are dictionaries containing ticket information. Each ticket
+                                 dictionary must have a "Sheet Status" key.
+     Returns:
+          dict: A dictionary with status types as keys and their frequency counts as values.
+                 Keys: 'passed', 'failed', 'untestable', 'in progress', 'monitoring', 'blocked'
+     Raises:
+          KeyError: If a ticket's "Sheet Status" value does not match any of the predefined
+                     status categories.
+     Note:
+          InvalidRow exceptions (missing data) are caught and logged but do not halt execution.
+     """
+        
+        
         # Keep track of status counts
-        status_counts = {
-            'passed': 0,
-            'failed': 0,
-            'untestable': 0,
-            'in progress': 0,
-            'monitoring': 0,
-            'blocked': 0,
-        }
+     status_counts = {
+          'passed': 0,
+          'failed': 0,
+          'untestable': 0,
+          'in progress': 0,
+          'monitoring': 0,
+          'blocked': 0,
+     }
 
-        for row in tqdm(ticket_dict, "Counting Status Frequency"):
-            try:
-                status_counts[ticket_dict[row]["Sheet Status"]] += 1
-            except IndexError:
-                print("Invalid row: Missing data\n")
+     for row in tqdm(ticket_dict, "Counting Status Frequency"):
+          try:
+               status_counts[ticket_dict[row]["Sheet Status"]] += 1
+          except IndexError:
+               print("Invalid row: Missing data\n")
 
-        print("Status Frequency Counted Successfully.\n")
-        return status_counts
+     print("Status Frequency Counted Successfully.\n")
+     return status_counts
 
 # Create and save a pie chart based off of the stability of the sheet
+# TODO: Successfully ignoring zeroes, but now colors are off. Perhaps map them to specific values?
 def make_pi_chart(status_counts):
-        colors = ['green', 'red', 'blue', 'yellow', 'purple', 'orange', 'black']
-        plt.pie(status_counts.values(), labels=status_counts.keys(), autopct='%1.1f%%', startangle=45, rotatelabels=True, colors=colors) 
-        plt.title("Pie Chart")
+     """
+     Create and save a pie chart visualization of status counts.
+     Args:
+          status_counts (dict): A dictionary with status names as keys and their counts as values.
+     Returns:
+          None
+     Description:
+          Filters out statuses with zero counts, creates a pie chart with the remaining statuses,
+          and saves it as an image file with a timestamp. The chart includes percentage labels
+          and is rotated for better readability.
+     Side Effects:
+          - Displays a pie chart using matplotlib
+          - Saves the figure to the 'images/' directory with format: {BUILD}_{timestamp}.png
+          - Prints a message confirming the file save location
+     """
 
-        # Save the pie chart with datetime in ISO format
-        current_datetime = datetime.now()
-        formated_datetime = current_datetime.strftime("%Y-%m-%d %H:%M:%S")
-        plt.savefig(f"images/{formated_datetime}")
 
-        print(f"Saved figure to images/{formated_datetime}.\n")
+     colors = ['green', 'red', 'blue', 'yellow', 'purple', 'orange']
+     filtered_counts = {}
+     for key, val in tqdm(status_counts.items(), "Creating Pie Chart"):
+          if val > 0:
+               filtered_counts[key] = val
+     plt.pie(filtered_counts.values(), labels=filtered_counts.keys(), autopct='%1.1f%%', startangle=45, rotatelabels=True, colors=colors) 
+     plt.title(f"Current Health of {BUILD}")
+
+     # Save the pie chart with datetime in ISO format
+     current_datetime = datetime.now()
+     formated_datetime = current_datetime.strftime("%Y-%m-%d_%H:%M:%S")
+     fig_name = f"{BUILD}_{formated_datetime}"
+     plt.savefig(f"images/{fig_name}")
+
+     print(f"Saved figure to images/{fig_name}\n")
 
 if __name__ == "__main__":
      main()
