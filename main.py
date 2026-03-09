@@ -81,20 +81,20 @@ def main():
         # Check Status on Jira
         ticket_dict = create_dict(values)
 
-        print(f"Difference: {caclulate_difference(ticket_dict)}")
+        print(f"Difference: {caclulate_difference(ticket_dict)}\n")
         
         # Update Sheets
 
         # Report Stats
-     #    status_counts = status_frequency(ticket_dict)
-     #    make_pi_chart(status_counts)
+        status_counts = status_frequency(ticket_dict)
+        make_pi_chart(status_counts)
     
     except HttpError as err:
         print(err)
 
 def caclulate_difference(ticket_dict):
      difference = 0
-     for ticket, ticket_data in ticket_dict.items():
+     for _, ticket_data in ticket_dict.items():
           sheet = ticket_data["Sheet Status"]
           jira = ticket_data["Jira Status"]
           # print(f"Sheet: {sheet}, Jira: {jira}\n")
@@ -142,22 +142,20 @@ def check_jira_ticket_status(ticket_id):
      return (ticket_dict["fields"]["status"]["name"])
 
 # Count Frequency
-# TODO: Re-write this to handle the new dictionary format.
 def status_frequency(ticket_dict):
-    # Keep track of status counts
+        # Keep track of status counts
         status_counts = {
-            'PASSED': 0,
-            'FAILED': 0,
-            'Untestable': 0,
-            'In Progress': 0,
-            'Monitoring': 0,
-            'Blocked': 0,
-            '': 0, # This one helps handle blank entries
+            'passed': 0,
+            'failed': 0,
+            'untestable': 0,
+            'in progress': 0,
+            'monitoring': 0,
+            'blocked': 0,
         }
 
         for row in ticket_dict:
             try:
-                status_counts[row[5]] += 1
+                status_counts[ticket_dict[row]["Sheet Status"]] += 1
             except IndexError:
                 print("Invalid row: Missing data\n")
 
