@@ -18,7 +18,7 @@ from googleapiclient.errors import HttpError
 print() # whitespace
 
 # If modifying these scopes, delete the file token.json
-SCOPES = ["https://www.googleapis.com/auth/spreadsheets.readonly"]
+SCOPES = ["https://www.googleapis.com/auth/spreadsheets"]
 
 # The ID and range of a sample spreadsheet 
 SAMPLE_SPREADSHEET_ID = "1DDoeKkUs7LKQX8xrGrqkH83GyI4zFR1oW3wccayjbfw"
@@ -69,11 +69,44 @@ def main():
 
      # Report time taken to execute script
      end = datetime.now()
-     print(f"Program Finished in: {(end - start).total_seconds() // 60:.0f}:{(end - start).total_seconds() % 60:.0f} seconds.\n")
+     print(f"Program Finished in: {(end - start).total_seconds() // 60:.0f}:{(end - start).total_seconds() % 60:.0f}\n")
 
-# TODO: Update Sheets
 def update_sheet_data(ticket_dict):
-     pass
+     """
+     Update the Google Sheet with ticket statuses from Jira.
+     Reverses the status mapping process to convert Jira statuses back to Sheet format.
+     """
+     creds = get_credential_data()
+     
+     try:
+          service = build("sheets", "v4", credentials=creds)
+          
+          # TODO: Fix reverse mapping
+          # Create reverse mapping (Jira status -> Sheet status)
+          reverse_mapping = {v: k for k, v in status_mapping.MAP.items()}
+          
+          updates = []
+          for ticket_data in tqdm(ticket_dict.values(), "Updating Sheet"):
+               jira_status = ticket_data["Jira Status"]
+               sheet_status = reverse_mapping.get(jira_status, jira_status)
+               
+               # Capitalize for sheet format
+               sheet_status = sheet_status.title() if sheet_status else 'In Progress'
+               updates.append([sheet_status])
+          
+          # Update the sheet with new values
+          body = {"values": updates}
+          service.spreadsheets().values().update(
+               spreadsheetId=SAMPLE_SPREADSHEET_ID,
+               range="F2:F",
+               valueInputOption="USER_ENTERED",
+               body=body
+          ).execute()
+          
+          print("Sheet updated successfully.\n")
+     
+     except HttpError as err:
+          print(f"Error updating sheet: {err}\n")
 
 # Calculate the difference between ticket values on the Tracker and in Jira
 def caclulate_difference(ticket_dict):
@@ -198,6 +231,7 @@ def status_frequency(ticket_dict):
         
         
         # Keep track of status counts
+     
      status_counts = {
           'passed': 0,
           'failed': 0,
@@ -235,7 +269,6 @@ def make_pi_chart(status_counts):
           - Prints a message confirming the file save location
      """
 
-
      colors = ['green', 'red', 'blue', 'yellow', 'purple', 'orange']
      filtered_counts = {}
      for key, val in tqdm(status_counts.items(), "Creating Pie Chart"):
@@ -272,7 +305,6 @@ def get_credential_data():
           Requires 'credentials.json' file in the working directory for initial
           OAuth 2.0 authentication flow.
      """
-
 
      creds = None
 
@@ -312,7 +344,6 @@ def get_sheet_data():
           Requires SAMPLE_SPREADSHEET_ID and SAMPLE_RANGE_NAME to be defined globally.
           Requires valid credentials to be available via get_credential_data().
      """
-
 
      creds = get_credential_data()
 
