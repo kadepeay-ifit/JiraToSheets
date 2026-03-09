@@ -1,12 +1,12 @@
-import matplotlib.pyplot as plt
 import os
+import json
+import requests 
+import status_mapping
+import matplotlib.pyplot as plt
+from requests.auth import HTTPBasicAuth
 from dotenv import load_dotenv
 from datetime import datetime
-import requests 
-from requests.auth import HTTPBasicAuth
-from bs4 import BeautifulSoup
-import json
-import status_mapping
+from tqdm import tqdm # For progress bars
 
 # Imports for google API
 from google.auth.transport.requests import Request
@@ -77,13 +77,13 @@ def main():
             print("No data found.\n")
             return
 
-        # List of tickets
-        # Check Status on Jira
+     
+        # Create a dictionary of values for both sheets and jira
         ticket_dict = create_dict(values)
 
         print(f"Difference: {caclulate_difference(ticket_dict)}\n")
         
-        # Update Sheets
+        # TODO: Update Sheets
 
         # Report Stats
         status_counts = status_frequency(ticket_dict)
@@ -94,7 +94,7 @@ def main():
 
 def caclulate_difference(ticket_dict):
      difference = 0
-     for _, ticket_data in ticket_dict.items():
+     for _, ticket_data in tqdm(ticket_dict.items(), "Calculating Difference"):
           sheet = ticket_data["Sheet Status"]
           jira = ticket_data["Jira Status"]
           # print(f"Sheet: {sheet}, Jira: {jira}\n")
@@ -105,7 +105,7 @@ def caclulate_difference(ticket_dict):
 # Create a dictionary of ticket names with the status of google sheets and jira as the values
 def create_dict(values): 
      ticket_dict = {}
-     for row in values:
+     for row in tqdm(values, "Creating Dictionary"):
           try:
                 ticket_name = row[0]
                 sheet_status = row[5].lower() if len(row) > 5 and row[5] else 'in progress' # default to in progress
@@ -153,7 +153,7 @@ def status_frequency(ticket_dict):
             'blocked': 0,
         }
 
-        for row in ticket_dict:
+        for row in tqdm(ticket_dict, "Counting Status Frequency"):
             try:
                 status_counts[ticket_dict[row]["Sheet Status"]] += 1
             except IndexError:
