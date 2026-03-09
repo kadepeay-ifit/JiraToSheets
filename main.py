@@ -6,6 +6,7 @@ import requests
 from requests.auth import HTTPBasicAuth
 from bs4 import BeautifulSoup
 import json
+import status_mapping
 
 # Imports for google API
 from google.auth.transport.requests import Request
@@ -20,7 +21,6 @@ SCOPES = ["https://www.googleapis.com/auth/spreadsheets.readonly"]
 # The ID and range of a sample spreadsheet 
 SAMPLE_SPREADSHEET_ID = "1DDoeKkUs7LKQX8xrGrqkH83GyI4zFR1oW3wccayjbfw"
 SAMPLE_RANGE_NAME = "A2:H"
-
 
 # load_dotenv() will load variables from a local .env file during development.
 # In GitHub Actions, it will be ignored as there is no .env file,
@@ -84,12 +84,12 @@ def main():
         # Update Sheets
 
         # Report Stats
-        # make_pi_chart(status_counts)
+     #    status_counts = status_frequency(ticket_dict)
+     #    make_pi_chart(status_counts)
     
     except HttpError as err:
         print(err)
 
-# TODO: Need a translation middle layer
 def caclulate_difference(ticket_dict):
      difference = 0
      for ticket, ticket_data in ticket_dict.items():
@@ -106,18 +106,21 @@ def create_dict(values):
      for row in values:
           try:
                 ticket_name = row[0]
-                sheet_status = row[5]
+                sheet_status = row[5].lower()
+
+                # Translate ticket types between jira and sheets
+                jira_status = check_jira_ticket_status(ticket_name)
+                translated_jira_status = status_mapping.MAP.get(jira_status)
+
                 ticket_dict[ticket_name] = {
                      "Sheet Status": sheet_status,
-                     "Jira Status": check_jira_ticket_status(ticket_name) # TODO: Perhaps here is where the translation layer should live
+                     "Jira Status": translated_jira_status
                 }
           except IndexError:
                print(f"Error while creating dictionary. Problem row: {row}\n")
 
      print("Ticket Dictionary Created Successfully.\n")
      return ticket_dict
-
-
 
 # Check status on Jira side
 def check_jira_ticket_status(ticket_id):
@@ -137,6 +140,7 @@ def check_jira_ticket_status(ticket_id):
      return (ticket_dict["fields"]["status"]["name"])
 
 # Count Frequency
+# TODO: Re-write this to handle the new dictionary format.
 def status_frequency(ticket_dict):
     # Keep track of status counts
         status_counts = {
