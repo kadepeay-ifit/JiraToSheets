@@ -15,6 +15,8 @@ from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
 
+print() # whitespace
+
 # If modifying these scopes, delete the file token.json
 SCOPES = ["https://www.googleapis.com/auth/spreadsheets.readonly"]
 
@@ -79,7 +81,7 @@ def main():
         # Check Status on Jira
         ticket_dict = create_dict(values)
 
-        print(caclulate_difference(ticket_dict))
+        print(f"Difference: {caclulate_difference(ticket_dict)}")
         
         # Update Sheets
 
@@ -95,10 +97,10 @@ def caclulate_difference(ticket_dict):
      for ticket, ticket_data in ticket_dict.items():
           sheet = ticket_data["Sheet Status"]
           jira = ticket_data["Jira Status"]
-          print(f"Sheet: {sheet}, Jira: {jira}\n")
+          # print(f"Sheet: {sheet}, Jira: {jira}\n")
           if(sheet != jira): 
                difference += 1
-     return f"{(difference / len(ticket_dict)) * 100}%"
+     return f"{round((difference / len(ticket_dict)) * 100, 2)}%" # round to 2 decimal places
 
 # Create a dictionary of ticket names with the status of google sheets and jira as the values
 def create_dict(values): 
@@ -106,11 +108,11 @@ def create_dict(values):
      for row in values:
           try:
                 ticket_name = row[0]
-                sheet_status = row[5].lower()
+                sheet_status = row[5].lower() if len(row) > 5 and row[5] else 'in progress' # default to in progress
 
                 # Translate ticket types between jira and sheets
                 jira_status = check_jira_ticket_status(ticket_name)
-                translated_jira_status = status_mapping.MAP.get(jira_status)
+                translated_jira_status = status_mapping.MAP.get(jira_status) # Translation layer also makes all lowercase
 
                 ticket_dict[ticket_name] = {
                      "Sheet Status": sheet_status,
@@ -176,5 +178,4 @@ def make_pi_chart(status_counts):
         print(f"Saved figure to images/{formated_datetime}.\n")
 
 if __name__ == "__main__":
-     print() # I like whitespace at the beginning of my output
      main()
