@@ -51,8 +51,11 @@ def main():
 
      print(f"Evaluating Build: {BUILD}\n")
 
+     # Get Credentials
+     creds = get_credential_data()
+
      # Get a set of values from the Tracker
-     values = get_sheet_data()
+     values = get_sheet_data(creds)
      
      # Create a dictionary of values for both sheets and jira
      ticket_dict = create_dict(values)
@@ -71,13 +74,33 @@ def main():
      end = datetime.now()
      print(f"Program Finished in: {(end - start).total_seconds() // 60:.0f}:{(end - start).total_seconds() % 60:.0f}\n")
 
-def update_sheet_data(ticket_dict):
+def update_sheet_data(ticket_dict, creds):
      """
-     Update the Google Sheet with ticket statuses from Jira.
-     Reverses the status mapping process to convert Jira statuses back to Sheet format.
+     Update Google Sheets with Jira ticket status data.
+     This function takes a dictionary of ticket data and Google Sheets API credentials,
+     then updates the status column (F2:F) in the specified spreadsheet with formatted
+     Jira status values.
+     Args:
+          ticket_dict (dict): Dictionary containing ticket data where each value contains
+               a "Jira Status" key with the ticket's current status.
+          creds: Google API credentials object for authenticating with the Sheets API.
+     Returns:
+          None
+     Raises:
+          HttpError: If an error occurs while communicating with the Google Sheets API.
+     Side Effects:
+          - Prints "Sheet updated successfully.\n" on successful completion.
+          - Prints error message if HttpError occurs during sheet update.
+          - Displays progress bar using tqdm while processing tickets.
+     Notes:
+          - Status values are formatted as follows:
+               - "PASSED" and "FAILED" are converted to uppercase
+               - Other non-None statuses are converted to title case
+               - None/null statuses are replaced with "In Progress"
+          - Updates are applied to column F (status column) starting from row 2 (F2:F)
+          - SAMPLE_SPREADSHEET_ID must be defined in the module scope
      """
-     creds = get_credential_data()
-     
+
      try:
           service = build("sheets", "v4", credentials=creds)
                     
@@ -349,7 +372,7 @@ def get_credential_data():
      return creds
 
 # Get all of the data off of the Google Sheet Tracker
-def get_sheet_data():
+def get_sheet_data(creds):
      """
      Retrieves data from a Google Sheet.
      This function authenticates with Google Sheets API using stored credentials,
@@ -357,14 +380,13 @@ def get_sheet_data():
      Returns:
           list: A list of rows containing the sheet data, where each row is a list of cell values.
                  Returns None if no data is found in the specified range.
+          creds: Google API credentials object for authenticating with the Sheets API.
      Raises:
           Prints error message if an HttpError occurs during API communication.
      Note:
           Requires SAMPLE_SPREADSHEET_ID and SAMPLE_RANGE_NAME to be defined globally.
           Requires valid credentials to be available via get_credential_data().
      """
-
-     creds = get_credential_data()
 
      try:
          service = build("sheets", "v4", credentials=creds)
