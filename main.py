@@ -25,7 +25,7 @@ SAMPLE_SPREADSHEET_ID = "1DDoeKkUs7LKQX8xrGrqkH83GyI4zFR1oW3wccayjbfw"
 SAMPLE_RANGE_NAME = "A2:H"
 
 # Upate to current build number for accurate naming
-BUILD = "Retail-2026-02"
+BUILD = "Retail-2026-01"
 
 # load_dotenv() will load variables from a local .env file during development.
 # In GitHub Actions, it will be ignored as there is no .env file,
@@ -80,19 +80,21 @@ def update_sheet_data(ticket_dict):
      
      try:
           service = build("sheets", "v4", credentials=creds)
-          
-          # TODO: Fix reverse mapping
-          # Create reverse mapping (Jira status -> Sheet status)
-          reverse_mapping = {v: k for k, v in status_mapping.MAP.items()}
-          
+                    
           updates = []
           for ticket_data in tqdm(ticket_dict.values(), "Updating Sheet"):
                jira_status = ticket_data["Jira Status"]
-               sheet_status = reverse_mapping.get(jira_status, jira_status)
                
                # Capitalize for sheet format
-               sheet_status = sheet_status.title() if sheet_status else 'In Progress'
-               updates.append([sheet_status])
+               # Sheet uses title for most, passed and failed are all caps
+               # Potentially update on sheets itself how statuses are capitalized
+               if jira_status.lower() == "passed" or jira_status.lower() == "failed":
+                    jira_status = jira_status.upper()
+               elif jira_status is not None:
+                    jira_status = jira_status.title()
+               else:
+                    jira_status = 'In Progress'
+               updates.append([jira_status])
           
           # Update the sheet with new values
           body = {"values": updates}
@@ -151,12 +153,17 @@ def create_dict(values):
           - Uses tqdm to display progress bar during dictionary creation
           - Requires check_jira_ticket_status() function and status_mapping.MAP for translations
           - Handles missing or empty status values gracefully with a default value
+          - Skips rows where columns A-C contain date objects
      """
 
      ticket_dict = {}
      for row in tqdm(values, "Creating Dictionary"):
           try:
-                ticket_name = row[0]
+                # Skip mid-sheet version name
+                if row[0] == "2026-01":
+                     continue
+                else:
+                     ticket_name = row[0]
                 sheet_status = row[5].lower() if len(row) > 5 and row[5] else 'in progress' # default to in progress
 
                 # Translate ticket types between jira and sheets
@@ -251,7 +258,6 @@ def status_frequency(ticket_dict):
      return status_counts
 
 # Create and save a pie chart based off of the stability of the sheet
-# TODO: Successfully ignoring zeroes, but now colors are off. Perhaps map them to specific values?
 def make_pi_chart(status_counts):
      """
      Create and save a pie chart visualization of status counts.
@@ -262,18 +268,31 @@ def make_pi_chart(status_counts):
      Description:
           Filters out statuses with zero counts, creates a pie chart with the remaining statuses,
           and saves it as an image file with a timestamp. The chart includes percentage labels
-          and is rotated for better readability.
+          and is rotated for better readability. Each status is mapped to a specific color.
      Side Effects:
           - Displays a pie chart using matplotlib
           - Saves the figure to the 'images/' directory with format: {BUILD}_{timestamp}.png
           - Prints a message confirming the file save location
      """
 
-     colors = ['green', 'red', 'blue', 'yellow', 'purple', 'orange']
+     # Map statuses to their corresponding colors
+     color_mapping = {
+          'passed': 'green',
+          'failed': 'red',
+          'untestable': 'blue',
+          'in progress': 'yellow',
+          'monitoring': 'purple',
+          'blocked': 'orange',
+          '': 'black'
+     }
+     
      filtered_counts = {}
+     colors = []
      for key, val in tqdm(status_counts.items(), "Creating Pie Chart"):
           if val > 0:
                filtered_counts[key] = val
+               colors.append(color_mapping[key])
+     
      plt.pie(filtered_counts.values(), labels=filtered_counts.keys(), autopct='%1.1f%%', startangle=45, rotatelabels=True, colors=colors) 
      plt.title(f"Current Health of {BUILD}")
 
