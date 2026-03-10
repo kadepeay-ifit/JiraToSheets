@@ -49,8 +49,6 @@ else:
 def main():
      start = datetime.now() # Start the timer
 
-     print(f"Evaluating Build: {BUILD}\n")
-
      # Get Credentials
      creds = get_credential_data()
 
@@ -61,14 +59,24 @@ def main():
      ticket_dict = create_dict(values)
 
      # Print percentage difference between Sheets and Jira
-     print(f"Difference: {caclulate_difference(ticket_dict)}\n")
+     difference = caclulate_difference(ticket_dict)
      
      # Update Sheets
-     update_sheet_data(ticket_dict)
+     num_rows_updated = update_sheet_data(ticket_dict, creds)
 
      # Report Stats
      status_counts = status_frequency(ticket_dict)
      make_pi_chart(status_counts)
+
+     print(f"Reporting stats for build version {BUILD}.\n")
+
+     print(f"Difference before updating: {difference}\n")
+
+     print(f"Count of each Status:")
+     for status, count in status_counts.items():
+          print(f"    {status}: {count}\n")
+
+     print(f"Changed {num_rows_updated} rows on the Tracker.\n")
 
      # Report time taken to execute script
      end = datetime.now()
@@ -111,10 +119,10 @@ def update_sheet_data(ticket_dict, creds):
                # Capitalize for sheet format
                # Sheet uses title for most, passed and failed are all caps
                # Potentially update on sheets itself how statuses are capitalized
-               if jira_status.lower() == "passed" or jira_status.lower() == "failed":
-                    jira_status = jira_status.upper()
-               elif jira_status is not None:
+               if jira_status is not None:
                     jira_status = jira_status.title()
+                    if jira_status.lower() == "passed" or jira_status.lower() == "failed":
+                         jira_status = jira_status.upper()
                else:
                     jira_status = 'In Progress'
                updates.append([jira_status])
@@ -129,6 +137,7 @@ def update_sheet_data(ticket_dict, creds):
           ).execute()
           
           print("Sheet updated successfully.\n")
+          return(len(updates)) # Return number of rows changed
      
      except HttpError as err:
           print(f"Error updating sheet: {err}\n")
@@ -306,7 +315,7 @@ def make_pi_chart(status_counts):
           'in progress': 'yellow',
           'monitoring': 'purple',
           'blocked': 'orange',
-          '': 'black'
+          '': 'black' 
      }
      
      filtered_counts = {}
