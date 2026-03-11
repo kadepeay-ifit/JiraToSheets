@@ -9,7 +9,7 @@ MAP = {
     'Delete': 'failed',
     'Not Doing': 'untestable',
     'Released': 'passed',
-    'Tier 1': 'monitoring',
-    'Tier 2': 'monitoring',
+    'Tier 1': 'in progress', # Selected for testing
+    'Tier 2': 'monitoring', # In testing
     'Tier 3': 'monitoring',
 }

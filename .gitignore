@@ -7,6 +7,9 @@ apitoken.txt
 # Hide the images to save space
 images/
 
+# VS code stuff
+.vscode
+
 # Ignore json files that I am saving during testing
 # The acutal app shouldn't save any of the json as text.
 *.json

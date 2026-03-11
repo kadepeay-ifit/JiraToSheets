@@ -35,3 +35,11 @@ python3 main.py
 ```
 
 The first time the script is run, it will prompt you to log in with your google account. 
+
+## File Descriptions
+
+| File | Purpose |
+|------|---------|
+| `main.py` | Entry point for the script. Orchestrates the synchronization between Jira and Google Sheets, and handles all data calculations and report generation. |
+| `google_services.py` | Manages Google API interactions and abstracts away authentication boilerplate code. |
+| `status_mapping.py` | Translates ticket statuses between Jira and Google Sheets tracker formats. |

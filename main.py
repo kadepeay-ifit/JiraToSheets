@@ -16,7 +16,7 @@ from googleapiclient.errors import HttpError
 print() # whitespace
 
 # Upate to current build number for accurate naming
-BUILD = "Retail-2026-01"
+BUILD = "Retail-2026-02"
 
 # load_dotenv() will load variables from a local .env file during development.
 # In GitHub Actions, it will be ignored as there is no .env file,
@@ -53,7 +53,7 @@ def main():
      difference = caclulate_difference(ticket_dict)
      
      # Update Sheets
-     num_rows_updated = update_sheet_data(ticket_dict, creds)
+     num_updated_rows = update_sheet_data(ticket_dict, creds)
 
      # Report Stats
      status_counts = status_frequency(ticket_dict)
@@ -63,13 +63,15 @@ def main():
 
      print(f"Reporting stats for build version {BUILD}.\n")
 
-     print(f"Difference before updating: {difference}\n")
+     print(f"Number of Different Ticket Values: {difference}\n")
+
+     print(f"Difference before updating: {round((difference / len(ticket_dict)) * 100, 2)}%\n")
 
      print(f"Count of each Status:")
      for status, count in status_counts.items():
           print(f"    {status}: {count}\n")
 
-     print(f"Changed {num_rows_updated} rows on the Tracker.\n")
+     print(f"Looked at {num_updated_rows} rows on the Tracker.\n")
 
      # Report time taken to execute script
      end = datetime.now()
@@ -130,7 +132,7 @@ def update_sheet_data(ticket_dict, creds):
           ).execute()
           
           print("Sheet updated successfully.\n")
-          return(len(updates)) # Return number of rows changed
+          return(len(updates)) # Return rows changed
      
      except HttpError as err:
           print(f"Error updating sheet: {err}\n")
@@ -154,7 +156,10 @@ def caclulate_difference(ticket_dict):
           # print(f"Sheet: {sheet}, Jira: {jira}\n")
           if(sheet != jira): 
                difference += 1
-     return f"{round((difference / len(ticket_dict)) * 100, 2)}%" # round to 2 decimal places
+
+     print(f"Difference Percentage Calculated Successfully.\n")
+
+     return difference
 
 # Create a dictionary of ticket names with the status of google sheets and jira as the values
 def create_dict(values): 
@@ -308,7 +313,7 @@ def make_pi_chart(status_counts):
           'in progress': 'yellow',
           'monitoring': 'purple',
           'blocked': 'orange',
-          '': 'black' 
+          '': 'black' # Just in case there is any blank values
      }
      
      filtered_counts = {}
@@ -328,8 +333,6 @@ def make_pi_chart(status_counts):
      plt.savefig(f"images/{fig_name}")
 
      print(f"Saved figure to images/{fig_name}\n")
-
-
 
 if __name__ == "__main__":
      main()
