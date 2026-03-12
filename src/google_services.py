@@ -8,9 +8,10 @@ from googleapiclient.errors import HttpError
 # If modifying these scopes, delete the file token.json
 SCOPES = ["https://www.googleapis.com/auth/spreadsheets"]
 
-# The ID and range of a sample spreadsheet 
-SAMPLE_SPREADSHEET_ID = "1DDoeKkUs7LKQX8xrGrqkH83GyI4zFR1oW3wccayjbfw"
-SAMPLE_RANGE_NAME = "A2:H"
+# The ID and range of a sample spreadsheet.
+# These can be overridden via environment variables to avoid code edits per run.
+SAMPLE_SPREADSHEET_ID = os.getenv("SAMPLE_SPREADSHEET_ID", "1DDoeKkUs7LKQX8xrGrqkH83GyI4zFR1oW3wccayjbfw")
+SAMPLE_RANGE_NAME = os.getenv("SAMPLE_RANGE_NAME", "A2:H")
 
 
 def get_credential_data():
@@ -49,7 +50,7 @@ def get_credential_data():
             )
             creds = flow.run_local_server(port=0)
          # Save the credentials for the next run
-         with open("token.json", "w") as token:
+         with open("token.json", "w", encoding="utf-8") as token:
             token.write(creds.to_json())
 
      print(f"Credentials Data Received.\n")
@@ -85,10 +86,11 @@ def get_sheet_data(creds):
 
          if not values:
              print("No data found.\n")
-             return
+             return []
          
          print(f"Tracker Data Received.\n")
          return values
      
      except HttpError as err:
           print(err)
+          return []

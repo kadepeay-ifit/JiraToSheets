@@ -1,63 +1,75 @@
 import os
-import json
-import requests 
+from pathlib import Path
+
+import requests
 import status_mapping
 import google_services
 import matplotlib.pyplot as plt
 from requests.auth import HTTPBasicAuth
 from dotenv import load_dotenv
 from datetime import datetime
-from tqdm import tqdm # For progress bars
-from google_services import SAMPLE_SPREADSHEET_ID, SAMPLE_RANGE_NAME
+from tqdm import tqdm  # For progress bars
+from google_services import SAMPLE_SPREADSHEET_ID
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
 
 
-print() # whitespace
-
-# Upate to current build number for accurate naming
-BUILD = "Retail-2026-02"
-
 # load_dotenv() will load variables from a local .env file during development.
 # In GitHub Actions, it will be ignored as there is no .env file,
 # and the variable is already set in the environment by the workflow file.
-load_dotenv() 
+load_dotenv()
+
+DEFAULT_BUILD = "Retail-2026-02"
+BUILD = os.getenv("BUILD_VERSION", DEFAULT_BUILD)
+JIRA_BASE_URL = os.getenv("JIRA_BASE_URL", "https://ifitdev.atlassian.net").rstrip("/")
+REQUEST_TIMEOUT_SECONDS = int(os.getenv("JIRA_REQUEST_TIMEOUT_SECONDS", "15"))
+SKIP_ROW_MARKERS = {"2026-01"}
 
 # User authentication constants
-API_TOKEN = os.getenv('API_TOKEN')
-USER_EMAIL = os.getenv('USER_EMAIL')
+API_TOKEN = os.getenv("API_TOKEN")
+USER_EMAIL = os.getenv("USER_EMAIL")
 
-if API_TOKEN is None:
-     print("Error: API key not found in environment variables.\n")
-else:
-     print("API Key successfully loaded.\n")
-
-if USER_EMAIL is None: 
-     print("Error: User Email not found in environment variables.\n")
-else:
-     print("User Email successfully loaded.\n")
+def validate_env_vars():
+     """Fail fast when required runtime configuration is missing."""
+     missing = []
+     if not API_TOKEN:
+          missing.append("API_TOKEN")
+     if not USER_EMAIL:
+          missing.append("USER_EMAIL")
+     if missing:
+          raise RuntimeError(
+               f"Missing required environment variables: {', '.join(missing)}"
+          )
+     print("API credentials loaded successfully.\n")
 
 def main():
      start = datetime.now() # Start the timer
+     validate_env_vars()
 
      # Get Credentials
      creds = google_services.get_credential_data()
 
      # Get a set of values from the Tracker
      values = google_services.get_sheet_data(creds)
+     if not values:
+          print("No tracker values were returned. Exiting.\n")
+          return
      
      # Create a dictionary of values for both sheets and jira
      ticket_dict = create_dict(values)
+     if not ticket_dict:
+          print("No ticket rows were processed. Exiting.\n")
+          return
 
      # Print percentage difference between Sheets and Jira
-     difference = caclulate_difference(ticket_dict)
+     difference = calculate_difference(ticket_dict)
      
      # Update Sheets
      num_updated_rows = update_sheet_data(ticket_dict, creds)
 
      # Report Stats
      status_counts = status_frequency(ticket_dict)
-     make_pi_chart(status_counts)
+     make_pie_chart(status_counts)
 
      print(f"    ------------------------------------------------    \n")
 
@@ -109,7 +121,7 @@ def update_sheet_data(ticket_dict, creds):
                     
           updates = []
           for ticket_data in tqdm(ticket_dict.values(), "Updating Sheet"):
-               jira_status = ticket_data["Jira Status"]
+               jira_status = ticket_data.get("Jira Status")
                
                # Capitalize for sheet format
                # Sheet uses title for most, passed and failed are all caps
@@ -132,13 +144,14 @@ def update_sheet_data(ticket_dict, creds):
           ).execute()
           
           print("Sheet updated successfully.\n")
-          return(len(updates)) # Return rows changed
+          return len(updates) # Return rows changed
      
      except HttpError as err:
           print(f"Error updating sheet: {err}\n")
+          return 0
 
 # Calculate the difference between ticket values on the Tracker and in Jira
-def caclulate_difference(ticket_dict):
+def calculate_difference(ticket_dict):
      """
      Calculate the percentage of tickets with mismatched statuses between Sheet and Jira.
      Args:
@@ -160,6 +173,10 @@ def caclulate_difference(ticket_dict):
      print(f"Difference Percentage Calculated Successfully.\n")
 
      return difference
+
+# Backwards-compatible alias for historical misspelling.
+def caclulate_difference(ticket_dict):
+     return calculate_difference(ticket_dict)
 
 # Create a dictionary of ticket names with the status of google sheets and jira as the values
 def create_dict(values): 
@@ -187,27 +204,36 @@ def create_dict(values):
      """
 
      ticket_dict = {}
+     unknown_statuses = set()
      for row in tqdm(values, "Creating Dictionary"):
+          if not row:
+               continue
           try:
-                # Skip mid-sheet version name
-                if row[0] == "2026-01":
-                     continue
-                else:
-                     ticket_name = row[0]
-                sheet_status = row[5].lower() if len(row) > 5 and row[5] else 'in progress' # default to in progress
+               ticket_name = row[0]
+               if not ticket_name or ticket_name in SKIP_ROW_MARKERS:
+                    continue
 
-                # Translate ticket types between jira and sheets
-                jira_status = check_jira_ticket_status(ticket_name)
-                translated_jira_status = status_mapping.MAP.get(jira_status) # Translation layer also makes all lowercase
+               sheet_status = row[5].lower() if len(row) > 5 and row[5] else "in progress"
 
-                ticket_dict[ticket_name] = {
-                     "Sheet Status": sheet_status,
-                     "Jira Status": translated_jira_status
-                }
-          except IndexError:
-               print(f"Error while creating dictionary. Problem row: {row}\n")
+               # Translate ticket types between jira and sheets
+               jira_status = check_jira_ticket_status(ticket_name)
+               if jira_status not in status_mapping.MAP:
+                    unknown_statuses.add(jira_status)
+               translated_jira_status = status_mapping.MAP.get(jira_status, "in progress")
+
+               ticket_dict[ticket_name] = {
+                    "Sheet Status": sheet_status,
+                    "Jira Status": translated_jira_status
+               }
+          except (IndexError, requests.exceptions.RequestException, ValueError) as exc:
+               print(f"Skipping row due to processing error: {row} ({exc})\n")
 
      print("Ticket Dictionary Created Successfully.\n")
+     if unknown_statuses:
+          print(
+               "Encountered Jira statuses missing from status_mapping.MAP: "
+               f"{', '.join(sorted(unknown_statuses))}\n"
+          )
      return ticket_dict
 
 # Check status on Jira side
@@ -230,20 +256,23 @@ def check_jira_ticket_status(ticket_id):
           KeyError: If the expected status field is not found in the response.
      """
 
-     url = f"https://ifitdev.atlassian.net/rest/api/3/issue/{ticket_id}"
+     url = f"{JIRA_BASE_URL}/rest/api/3/issue/{ticket_id}"
      headers = {
           "Accept": "application/json",
           "Content-Type": "application/json"
      }
      auth = HTTPBasicAuth(USER_EMAIL, API_TOKEN)
-     response = requests.get(url, headers=headers, auth=auth)
-     raw_ticket_json = response.content 
+     response = requests.get(url, headers=headers, auth=auth, timeout=REQUEST_TIMEOUT_SECONDS)
+     response.raise_for_status()
+     ticket_data = response.json()
 
-     # Search json for the status of the ticket
-     ticket_dict = json.loads(raw_ticket_json)
-
-     # Most Recent status name
-     return (ticket_dict["fields"]["status"]["name"])
+     try:
+          # Most Recent status name
+          return ticket_data["fields"]["status"]["name"]
+     except KeyError as exc:
+          raise ValueError(
+               f"Unexpected Jira response shape for ticket '{ticket_id}'"
+          ) from exc
 
 # Count Frequency of each status type
 def status_frequency(ticket_dict):
@@ -278,17 +307,17 @@ def status_frequency(ticket_dict):
           'blocked': 0,
      }
 
-     for row in tqdm(ticket_dict, "Counting Status Frequency"):
-          try:
-               status_counts[ticket_dict[row]["Sheet Status"]] += 1
-          except IndexError:
-               print("Invalid row: Missing data\n")
+     for ticket_data in tqdm(ticket_dict.values(), "Counting Status Frequency"):
+          status = ticket_data.get("Sheet Status", "in progress")
+          if status not in status_counts:
+               status_counts[status] = 0
+          status_counts[status] += 1
 
      print("Status Frequency Counted Successfully.\n")
      return status_counts
 
 # Create and save a pie chart based off of the stability of the sheet
-def make_pi_chart(status_counts):
+def make_pie_chart(status_counts):
      """
      Create and save a pie chart visualization of status counts.
      Args:
@@ -321,18 +350,32 @@ def make_pi_chart(status_counts):
      for key, val in tqdm(status_counts.items(), "Creating Pie Chart"):
           if val > 0:
                filtered_counts[key] = val
-               colors.append(color_mapping[key])
+               colors.append(color_mapping.get(key, "gray"))
+
+     if not filtered_counts:
+          print("No status counts available to chart.\n")
+          return
+
+     plt.figure(figsize=(8, 8))
      
      plt.pie(filtered_counts.values(), labels=filtered_counts.keys(), autopct='%1.1f%%', startangle=45, rotatelabels=True, colors=colors) 
      plt.title(f"Current Health of {BUILD}")
 
      # Save the pie chart with datetime in ISO format
      current_datetime = datetime.now()
-     formated_datetime = current_datetime.strftime("%Y-%m-%d_%H:%M:%S")
-     fig_name = f"{BUILD}_{formated_datetime}"
-     plt.savefig(f"images/{fig_name}")
+     formatted_datetime = current_datetime.strftime("%Y-%m-%d_%H-%M-%S")
+     fig_name = f"{BUILD}_{formatted_datetime}.png"
+     output_dir = Path("images")
+     output_dir.mkdir(parents=True, exist_ok=True)
+     output_path = output_dir / fig_name
+     plt.savefig(output_path)
+     plt.close()
 
-     print(f"Saved figure to images/{fig_name}\n")
+     print(f"Saved figure to {output_path}\n")
+
+# Backwards-compatible alias.
+def make_pi_chart(status_counts):
+     make_pie_chart(status_counts)
 
 if __name__ == "__main__":
      main()
