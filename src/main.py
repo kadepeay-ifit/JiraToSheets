@@ -44,6 +44,7 @@ def validate_env_vars():
 
 def main():
      start = datetime.now() # Start the timer
+
      validate_env_vars()
 
      # Get Credentials
@@ -81,7 +82,7 @@ def main():
 
      print(f"Count of each Status:")
      for status, count in status_counts.items():
-          print(f"    {status}: {count}\n")
+          print(f"    {status}: {count} - - - - ({ round((count / num_updated_rows) * 100, 2) }%)\n")
 
      print(f"Looked at {num_updated_rows} rows on the Tracker.\n")
 
@@ -173,10 +174,6 @@ def calculate_difference(ticket_dict):
      print(f"Difference Percentage Calculated Successfully.\n")
 
      return difference
-
-# Backwards-compatible alias for historical misspelling.
-def caclulate_difference(ticket_dict):
-     return calculate_difference(ticket_dict)
 
 # Create a dictionary of ticket names with the status of google sheets and jira as the values
 def create_dict(values): 
@@ -336,11 +333,11 @@ def make_pie_chart(status_counts):
 
      # Map statuses to their corresponding colors
      color_mapping = {
-          'passed': 'green',
-          'failed': 'red',
-          'untestable': 'blue',
+          'passed': 'springgreen',
+          'failed': 'indianred',
+          'untestable': 'skyblue',
           'in progress': 'yellow',
-          'monitoring': 'purple',
+          'monitoring': 'mediumorchid',
           'blocked': 'orange',
           '': 'black' # Just in case there is any blank values
      }
@@ -373,9 +370,6 @@ def make_pie_chart(status_counts):
 
      print(f"Saved figure to {output_path}\n")
 
-# Backwards-compatible alias.
-def make_pi_chart(status_counts):
-     make_pie_chart(status_counts)
 
 if __name__ == "__main__":
      main()
