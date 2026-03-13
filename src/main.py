@@ -230,7 +230,7 @@ def create_dict(values):
 
      ticket_rows = []
      unknown_statuses = set()
-     for row_number, row in tqdm(enumerate(values, start=2), "Creating Dictionary"):
+     for row_number, row in enumerate(tqdm(values, desc="Creating Dictionary"), start=2):
           if not row:
                continue
           ticket_name = row[0].strip() if row[0] else ""

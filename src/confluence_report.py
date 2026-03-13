@@ -187,7 +187,7 @@ def publish_report(
     created_page = _create_page(page_title, initial_body)
     page_id = created_page["id"]
     page_version = int(created_page["version"]["number"])
-    print(f"Confluence page created with ID: {page_id}")
+    print(f"Confluence page created with ID: {page_id}\n")
 
     if chart_path and chart_path.exists():
         _upload_attachment(page_id, chart_path)
