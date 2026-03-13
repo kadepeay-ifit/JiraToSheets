@@ -156,8 +156,8 @@ def update_sheet_data(ticket_rows, creds, last_checked_value):
                         jira_status = jira_status.upper()
               else:
                    jira_status = "In Progress"
-              updates.append({"range": f"F{row_number}", "values": [[jira_status]]})
-              updates.append({"range": f"I{row_number}", "values": [[last_checked_value]]})
+              updates.append({"range": f"'Tickets'!F{row_number}", "values": [[jira_status]]})
+              updates.append({"range": f"'Tickets'!I{row_number}", "values": [[last_checked_value]]})
               updated_rows += 1
 
          if not updates:
