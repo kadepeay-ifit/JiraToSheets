@@ -19,8 +19,7 @@ from googleapiclient.errors import HttpError
 # and the variable is already set in the environment by the workflow file.
 load_dotenv()
 
-DEFAULT_BUILD = "Retail-2026-02"
-BUILD = os.getenv("BUILD_VERSION", DEFAULT_BUILD)
+BUILD = os.getenv("BUILD_VERSION")
 JIRA_BASE_URL = os.getenv("JIRA_BASE_URL", "https://ifitdev.atlassian.net").rstrip("/")
 REQUEST_TIMEOUT_SECONDS = int(os.getenv("JIRA_REQUEST_TIMEOUT_SECONDS", "15"))
 SKIP_ROW_MARKERS = {"2026-01"}
@@ -290,11 +289,9 @@ def status_frequency(ticket_dict):
                      status categories.
      Note:
           InvalidRow exceptions (missing data) are caught and logged but do not halt execution.
-     """
+     """   
         
-        
-        # Keep track of status counts
-     
+     # Keep track of status counts
      status_counts = {
           'passed': 0,
           'failed': 0,
