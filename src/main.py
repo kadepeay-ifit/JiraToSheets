@@ -44,7 +44,7 @@ def validate_env_vars():
 
 def main():
      start = datetime.now() # Start the timer
-     last_checked_value = start.strftime("%Y-%m-%d %H:%M:%S")
+     last_checked_value = start.strftime("%Y-%m-%d") # Date only for this value
 
      validate_env_vars()
 

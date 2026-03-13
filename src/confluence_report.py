@@ -202,8 +202,8 @@ def publish_report(
             chart_filename=chart_path.name,
         )
         _update_page(page_id, page_title, page_version, body_with_chart)
-        print(f"Uploaded and embedded chart: {chart_path.name}")
+        print(f"Uploaded and embedded chart: {chart_path.name}\n")
     elif chart_path:
-        print(f"Chart path was provided but not found: {chart_path}")
+        print(f"Chart path was provided but not found: {chart_path}\n")
 
     return page_id
