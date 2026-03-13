@@ -138,7 +138,7 @@ def update_sheet_data(ticket_dict, creds):
           body = {"values": updates}
           service.spreadsheets().values().update(
                spreadsheetId=SAMPLE_SPREADSHEET_ID,
-               range="F2:F",
+               range="F2:F", # Only update the Status row
                valueInputOption="USER_ENTERED",
                body=body
           ).execute()
