@@ -4,6 +4,7 @@ from pathlib import Path
 import requests
 import status_mapping
 import google_services
+import confluence_report
 import matplotlib.pyplot as plt
 from requests.auth import HTTPBasicAuth
 from dotenv import load_dotenv
@@ -69,7 +70,8 @@ def main():
 
      # Report Stats
      status_counts = status_frequency(ticket_dict)
-     make_pie_chart(status_counts)
+     chart_path = make_pie_chart(status_counts)
+     difference_percentage = round((difference / len(ticket_dict)) * 100, 2)
 
      print(f"    ------------------------------------------------    \n")
 
@@ -77,17 +79,29 @@ def main():
 
      print(f"Number of Different Ticket Values: {difference}\n")
 
-     print(f"Difference before updating: {round((difference / len(ticket_dict)) * 100, 2)}%\n")
+     print(f"Difference before updating: {difference_percentage}%\n")
 
      print(f"Count of each Status:")
      for status, count in status_counts.items():
-          print(f"    {status}: {count} - - - - ({ round((count / num_updated_rows) * 100, 2) }%)\n")
+          row_percentage = round((count / num_updated_rows) * 100, 2) if num_updated_rows else 0.0
+          print(f"    {status}: {count} - - - - ({row_percentage}%)\n")
 
      print(f"Looked at {num_updated_rows} rows on the Tracker.\n")
 
      # Report time taken to execute script
      end = datetime.now()
      print(f"Program Finished in: {(end - start).total_seconds() // 60:.0f}:{(end - start).total_seconds() % 60:.0f}\n")
+
+     # Publish report to Confluence when configured.
+     confluence_report.publish_report(
+          build_version=BUILD or "unknown-build",
+          different_ticket_values=difference,
+          difference_percentage=difference_percentage,
+          status_counts=status_counts,
+          viewed_rows=num_updated_rows,
+          execution_seconds=(end - start).total_seconds(),
+          chart_path=chart_path,
+     )
 
 def update_sheet_data(ticket_dict, creds):
      """
@@ -317,7 +331,7 @@ def make_pie_chart(status_counts):
      Args:
           status_counts (dict): A dictionary with status names as keys and their counts as values.
      Returns:
-          None
+          pathlib.Path | None: Path to the saved chart image if created, else None.
      Description:
           Filters out statuses with zero counts, creates a pie chart with the remaining statuses,
           and saves it as an image file with a timestamp. The chart includes percentage labels
@@ -348,7 +362,7 @@ def make_pie_chart(status_counts):
 
      if not filtered_counts:
           print("No status counts available to chart.\n")
-          return
+          return None
 
      plt.figure(figsize=(8, 8))
      
@@ -366,6 +380,7 @@ def make_pie_chart(status_counts):
      plt.close()
 
      print(f"Saved figure to {output_path}\n")
+     return output_path
 
 
 if __name__ == "__main__":
