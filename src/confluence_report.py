@@ -42,7 +42,7 @@ def _confluence_api_url(path: str) -> str:
 
 def _build_page_title(build_version: str) -> str:
     formatted_datetime = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-    return f"Health Report: {build_version}_{formatted_datetime}"
+    return f"{build_version} Updated On {formatted_datetime}"
 
 
 def _build_page_body(
