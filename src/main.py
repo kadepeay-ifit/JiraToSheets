@@ -57,22 +57,22 @@ def main():
           print("No tracker values were returned. Exiting.\n")
           return
      
-     # Create a dictionary of values for both sheets and jira
-     ticket_dict = create_dict(values)
-     if not ticket_dict:
+     # Create row-aware ticket payloads with both Sheets and Jira status values.
+     ticket_rows = create_dict(values)
+     if not ticket_rows:
           print("No ticket rows were processed. Exiting.\n")
           return
 
      # Print percentage difference between Sheets and Jira
-     difference = calculate_difference(ticket_dict)
+     difference = calculate_difference(ticket_rows)
      
      # Update Sheets
-     num_updated_rows = update_sheet_data(ticket_dict, creds, last_checked_value)
+     num_updated_rows = update_sheet_data(ticket_rows, creds, last_checked_value)
 
      # Report Stats
-     status_counts = status_frequency(ticket_dict)
+     status_counts = status_frequency(ticket_rows)
      chart_path = make_pie_chart(status_counts)
-     difference_percentage = round((difference / len(ticket_dict)) * 100, 2)
+     difference_percentage = round((difference / len(ticket_rows)) * 100, 2)
 
      print(f"    ------------------------------------------------    \n")
 
@@ -106,94 +106,99 @@ def main():
           last_checked_value=last_checked_value,
      )
 
-def update_sheet_data(ticket_dict, creds, last_checked_value):
-     """
-     Update Google Sheets with Jira ticket status data.
-     This function takes a dictionary of ticket data and Google Sheets API credentials,
-     then updates the status column (F2:F) and Last Checked column (I2:I) in the
-     specified spreadsheet with formatted Jira status values and a run timestamp.
-     Args:
-          ticket_dict (dict): Dictionary containing ticket data where each value contains
-               a "Jira Status" key with the ticket's current status.
-          creds: Google API credentials object for authenticating with the Sheets API.
-          last_checked_value (str): Timestamp string written to each tracker row in
-               the Last Checked column.
-     Returns:
-          None
-     Raises:
-          HttpError: If an error occurs while communicating with the Google Sheets API.
-     Side Effects:
-          - Prints "Sheet updated successfully.\n" on successful completion.
-          - Prints error message if HttpError occurs during sheet update.
-          - Displays progress bar using tqdm while processing tickets.
-     Notes:
-          - Status values are formatted as follows:
-               - "PASSED" and "FAILED" are converted to uppercase
-               - Other non-None statuses are converted to title case
-               - None/null statuses are replaced with "In Progress"
-          - Updates are applied to column F (status column) and I (Last Checked),
-            starting from row 2 (F2:F and I2:I)
-          - SAMPLE_SPREADSHEET_ID must be defined in the module scope
-     """
+def update_sheet_data(ticket_rows, creds, last_checked_value):
+    """
+    Update Google Sheets with Jira ticket status data.
+    This function takes row-aware ticket data and Google Sheets API credentials,
+    then updates the status column (F) and Last Checked column (I) on each
+    source row with formatted Jira status values and a run timestamp.
+    Args:
+         ticket_rows (list[dict]): Row-aware ticket records where each row contains
+              "Row Number" and "Jira Status" keys.
+         creds: Google API credentials object for authenticating with the Sheets API.
+         last_checked_value (str): Timestamp string written to each tracker row in
+              the Last Checked column.
+    Returns:
+         int: Number of tracker rows updated.
+    Raises:
+         HttpError: If an error occurs while communicating with the Google Sheets API.
+    Side Effects:
+         - Prints "Sheet updated successfully.\n" on successful completion.
+         - Prints error message if HttpError occurs during sheet update.
+         - Displays progress bar using tqdm while processing tickets.
+    Notes:
+         - Status values are formatted as follows:
+              - "PASSED" and "FAILED" are converted to uppercase
+              - Other non-None statuses are converted to title case
+              - None/null statuses are replaced with "In Progress"
+         - Updates are applied to columns F (status) and I (Last Checked)
+           using explicit row ranges (e.g., F217, I217).
+         - SAMPLE_SPREADSHEET_ID must be defined in the module scope
+    """
 
-     try:
-          service = build("sheets", "v4", credentials=creds)
-                    
-          status_updates = []
-          last_checked_updates = []
-          for ticket_data in tqdm(ticket_dict.values(), "Updating Sheet"):
-               jira_status = ticket_data.get("Jira Status")
-               
-               # Capitalize for sheet format
-               # Sheet uses title for most, passed and failed are all caps
-               # Potentially update on sheets itself how statuses are capitalized
-               if jira_status is not None:
-                    jira_status = jira_status.title()
-                    if jira_status.lower() == "passed" or jira_status.lower() == "failed":
-                         jira_status = jira_status.upper()
-               else:
-                    jira_status = 'In Progress'
-               status_updates.append([jira_status])
-               last_checked_updates.append([last_checked_value])
-          
-          # Update both Status and Last Checked columns together.
-          body = {
-               "valueInputOption": "USER_ENTERED",
-               "data": [
-                    {"range": "F2:F", "values": status_updates},
-                    {"range": "I2:I", "values": last_checked_updates},
-               ],
-          }
-          service.spreadsheets().values().batchUpdate(
-               spreadsheetId=SAMPLE_SPREADSHEET_ID,
-               body=body
-          ).execute()
-          
-          print("Sheet updated successfully.\n")
-          return len(status_updates) # Return rows changed
-     
-     except HttpError as err:
-          print(f"Error updating sheet: {err}\n")
-          return 0
+    try:
+         service = build("sheets", "v4", credentials=creds)
+         updates = []
+         updated_rows = 0
+         for ticket_data in tqdm(ticket_rows, "Updating Sheet"):
+              row_number = ticket_data.get("Row Number")
+              if not row_number:
+                   continue
+
+              jira_status = ticket_data.get("Jira Status")
+
+              # Capitalize for sheet format
+              # Sheet uses title for most, passed and failed are all caps
+              # Potentially update on sheets itself how statuses are capitalized
+              if jira_status is not None:
+                   jira_status = jira_status.title()
+                   if jira_status.lower() == "passed" or jira_status.lower() == "failed":
+                        jira_status = jira_status.upper()
+              else:
+                   jira_status = "In Progress"
+              updates.append({"range": f"F{row_number}", "values": [[jira_status]]})
+              updates.append({"range": f"I{row_number}", "values": [[last_checked_value]]})
+              updated_rows += 1
+
+         if not updates:
+              print("No row updates generated.\n")
+              return 0
+
+         # Update both Status and Last Checked columns together.
+         body = {
+              "valueInputOption": "USER_ENTERED",
+              "data": updates,
+         }
+         service.spreadsheets().values().batchUpdate(
+              spreadsheetId=SAMPLE_SPREADSHEET_ID,
+              body=body
+         ).execute()
+
+         print("Sheet updated successfully.\n")
+         return updated_rows  # Return rows changed
+
+    except HttpError as err:
+         print(f"Error updating sheet: {err}\n")
+         return 0
 
 # Calculate the difference between ticket values on the Tracker and in Jira
-def calculate_difference(ticket_dict):
+def calculate_difference(ticket_rows):
      """
      Calculate the percentage of tickets with mismatched statuses between Sheet and Jira.
      Args:
-          ticket_dict (dict): A dictionary where each value contains ticket data with 
-                                 "Sheet Status" and "Jira Status" keys.
+         ticket_rows (list[dict]): Row-aware ticket records containing
+              "Sheet Status" and "Jira Status" keys.
      Returns:
           str: A string representation of the percentage of tickets with differing statuses,
                 rounded to 2 decimal places (e.g., "25.50%").
      """
 
      difference = 0
-     for _, ticket_data in tqdm(ticket_dict.items(), "Calculating Difference"):
+     for ticket_data in tqdm(ticket_rows, "Calculating Difference"):
           sheet = ticket_data["Sheet Status"]
           jira = ticket_data["Jira Status"]
           # print(f"Sheet: {sheet}, Jira: {jira}\n")
-          if(sheet != jira): 
+          if(sheet != jira):
                difference += 1
 
      print(f"Difference Percentage Calculated Successfully.\n")
@@ -203,20 +208,18 @@ def calculate_difference(ticket_dict):
 # Create a dictionary of ticket names with the status of google sheets and jira as the values
 def create_dict(values): 
      """
-     Create a dictionary mapping ticket names to their status information from both Sheets and Jira.
+     Create row-aware ticket records with status information from both Sheets and Jira.
      
      Args:
-          values (list): A list of rows where each row contains ticket information.
-                           Expected format: row[0] = ticket_name, row[5] = sheet_status
+         values (list): A list of rows where each row contains ticket information.
+                          Expected format: row[0] = ticket_name, row[5] = sheet_status
      
      Returns:
-          dict: A dictionary with ticket names as keys and status information as values.
-                 Each value is a dict with:
-                 - "Sheet Status": The status from the sheet (lowercase), defaults to 'in progress' if not provided
-                 - "Jira Status": The translated Jira status (lowercase)
-     
-     Raises:
-          Prints error message if IndexError occurs while processing a row, but continues execution.
+         list[dict]: Row-aware ticket records. Each item includes:
+               - "Row Number": Sheet row number (starting at 2)
+               - "Ticket Name": Jira ticket identifier from column A
+               - "Sheet Status": The status from the sheet (lowercase)
+               - "Jira Status": The translated Jira status (lowercase)
      
      Note:
           - Uses tqdm to display progress bar during dictionary creation
@@ -225,30 +228,36 @@ def create_dict(values):
           - Skips rows where columns A-C contain date objects
      """
 
-     ticket_dict = {}
+     ticket_rows = []
      unknown_statuses = set()
-     for row in tqdm(values, "Creating Dictionary"):
+     for row_number, row in tqdm(enumerate(values, start=2), "Creating Dictionary"):
           if not row:
                continue
+          ticket_name = row[0].strip() if row[0] else ""
+          if not ticket_name or ticket_name in SKIP_ROW_MARKERS:
+               continue
+
+          sheet_status = row[5].strip().lower() if len(row) > 5 and row[5] else "in progress"
+
+          # Translate ticket types between Jira and Sheets.
           try:
-               ticket_name = row[0]
-               if not ticket_name or ticket_name in SKIP_ROW_MARKERS:
-                    continue
-
-               sheet_status = row[5].lower() if len(row) > 5 and row[5] else "in progress"
-
-               # Translate ticket types between jira and sheets
                jira_status = check_jira_ticket_status(ticket_name)
                if jira_status not in status_mapping.MAP:
                     unknown_statuses.add(jira_status)
                translated_jira_status = status_mapping.MAP.get(jira_status, "in progress")
+          except (requests.exceptions.RequestException, ValueError) as exc:
+               # Keep row alignment stable even when Jira lookups fail.
+               print(
+                    f"Falling back to sheet status for '{ticket_name}' due to Jira lookup error: {exc}\n"
+               )
+               translated_jira_status = sheet_status
 
-               ticket_dict[ticket_name] = {
-                    "Sheet Status": sheet_status,
-                    "Jira Status": translated_jira_status
-               }
-          except (IndexError, requests.exceptions.RequestException, ValueError) as exc:
-               print(f"Skipping row due to processing error: {row} ({exc})\n")
+          ticket_rows.append({
+               "Row Number": row_number,
+               "Ticket Name": ticket_name,
+               "Sheet Status": sheet_status,
+               "Jira Status": translated_jira_status
+          })
 
      print("Ticket Dictionary Created Successfully.\n")
      if unknown_statuses:
@@ -256,7 +265,7 @@ def create_dict(values):
                "Encountered Jira statuses missing from status_mapping.MAP: "
                f"{', '.join(sorted(unknown_statuses))}\n"
           )
-     return ticket_dict
+     return ticket_rows
 
 # Check status on Jira side
 def check_jira_ticket_status(ticket_id):
@@ -297,16 +306,15 @@ def check_jira_ticket_status(ticket_id):
           ) from exc
 
 # Count Frequency of each status type
-def status_frequency(ticket_dict):
+def status_frequency(ticket_rows):
      """
      Count the frequency of each status in the ticket dictionary.
      This function iterates through a dictionary of tickets and tallies the number
      of occurrences for each status type. It tracks six status categories: passed,
      failed, untestable, in progress, monitoring, and blocked.
      Args:
-          ticket_dict (dict): A dictionary where keys are row identifiers and values
-                                 are dictionaries containing ticket information. Each ticket
-                                 dictionary must have a "Sheet Status" key.
+         ticket_rows (list[dict]): Row-aware ticket records containing a
+              "Sheet Status" key.
      Returns:
           dict: A dictionary with status types as keys and their frequency counts as values.
                  Keys: 'passed', 'failed', 'untestable', 'in progress', 'monitoring', 'blocked'
@@ -327,7 +335,7 @@ def status_frequency(ticket_dict):
           'blocked': 0,
      }
 
-     for ticket_data in tqdm(ticket_dict.values(), "Counting Status Frequency"):
+     for ticket_data in tqdm(ticket_rows, "Counting Status Frequency"):
           status = ticket_data.get("Sheet Status", "in progress")
           if status not in status_counts:
                status_counts[status] = 0
