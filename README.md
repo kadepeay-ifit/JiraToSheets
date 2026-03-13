@@ -17,20 +17,20 @@ Create an API token in Atlassian account settings (**Security -> API tokens**), 
 Example `.env`:
 
 ```bash
-API_TOKEN=your_jira_api_token
-USER_EMAIL=your_email@example.com
-BUILD_VERSION=Retail-2026-02
-SAMPLE_SPREADSHEET_ID=your_google_sheet_id
-SAMPLE_RANGE_NAME=A2:I
+API_TOKEN="your_jira_api_token"
+USER_EMAIL="your_email@example.com"
+BUILD_VERSION="Retail-2026-02"
+SPREADSHEET_ID="your_google_sheet_id"
+RANGE_NAME="A2:I"
 # Confluence publishing (optional)
-SPACE_KEY=your_confluence_space_key
-PARENT_PAGE_ID=optional_parent_page_id
+SPACE_KEY="your_confluence_space_key"
+PARENT_PAGE_ID="optional_parent_page_id"
 # Optional override (defaults to JIRA_BASE_URL)
-CONFLUENCE_BASE_URL=https://ifitdev.atlassian.net
+CONFLUENCE_BASE_URL="https://ifitdev.atlassian.net"
 # Optional timeout (seconds)
 CONFLUENCE_REQUEST_TIMEOUT_SECONDS=30
 # Optional
-JIRA_BASE_URL=https://ifitdev.atlassian.net
+JIRA_BASE_URL="https://ifitdev.atlassian.net"
 JIRA_REQUEST_TIMEOUT_SECONDS=15
 ```
 

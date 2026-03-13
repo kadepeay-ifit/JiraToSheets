@@ -10,7 +10,7 @@ from requests.auth import HTTPBasicAuth
 from dotenv import load_dotenv
 from datetime import datetime
 from tqdm import tqdm  # For progress bars
-from google_services import SAMPLE_SPREADSHEET_ID
+from google_services import SPREADSHEET_ID
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
 
@@ -170,7 +170,7 @@ def update_sheet_data(ticket_rows, creds, last_checked_value):
               "data": updates,
          }
          service.spreadsheets().values().batchUpdate(
-              spreadsheetId=SAMPLE_SPREADSHEET_ID,
+              spreadsheetId=SPREADSHEET_ID,
               body=body
          ).execute()
 

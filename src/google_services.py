@@ -10,8 +10,8 @@ SCOPES = ["https://www.googleapis.com/auth/spreadsheets"]
 
 # The ID and range of a sample spreadsheet.
 # These can be overridden via environment variables to avoid code edits per run.
-SAMPLE_SPREADSHEET_ID = os.getenv("SAMPLE_SPREADSHEET_ID", "1DDoeKkUs7LKQX8xrGrqkH83GyI4zFR1oW3wccayjbfw")
-SAMPLE_RANGE_NAME = os.getenv("SAMPLE_RANGE_NAME", "A2:I")
+SPREADSHEET_ID = os.getenv("SPREADSHEET_ID", "1DDoeKkUs7LKQX8xrGrqkH83GyI4zFR1oW3wccayjbfw")
+RANGE_NAME = os.getenv("RANGE_NAME", "A2:I")
 
 
 def get_credential_data():
@@ -80,7 +80,7 @@ def get_sheet_data(creds):
          # Call the Sheets API
          sheet = service.spreadsheets()
          result = (
-                 sheet.values().get(spreadsheetId=SAMPLE_SPREADSHEET_ID, range=SAMPLE_RANGE_NAME).execute()
+                 sheet.values().get(spreadsheetId=SPREADSHEET_ID, range=RANGE_NAME).execute()
          )
          values = result.get("values", [])
 
