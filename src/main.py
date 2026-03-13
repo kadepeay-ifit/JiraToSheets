@@ -44,6 +44,7 @@ def validate_env_vars():
 
 def main():
      start = datetime.now() # Start the timer
+     last_checked_value = start.strftime("%Y-%m-%d %H:%M:%S")
 
      validate_env_vars()
 
@@ -66,7 +67,7 @@ def main():
      difference = calculate_difference(ticket_dict)
      
      # Update Sheets
-     num_updated_rows = update_sheet_data(ticket_dict, creds)
+     num_updated_rows = update_sheet_data(ticket_dict, creds, last_checked_value)
 
      # Report Stats
      status_counts = status_frequency(ticket_dict)
@@ -87,6 +88,7 @@ def main():
           print(f"    {status}: {count} - - - - ({row_percentage}%)\n")
 
      print(f"Looked at {num_updated_rows} rows on the Tracker.\n")
+     print(f"Last Checked value written to Tracker: {last_checked_value}\n")
 
      # Report time taken to execute script
      end = datetime.now()
@@ -101,18 +103,21 @@ def main():
           viewed_rows=num_updated_rows,
           execution_seconds=(end - start).total_seconds(),
           chart_path=chart_path,
+          last_checked_value=last_checked_value,
      )
 
-def update_sheet_data(ticket_dict, creds):
+def update_sheet_data(ticket_dict, creds, last_checked_value):
      """
      Update Google Sheets with Jira ticket status data.
      This function takes a dictionary of ticket data and Google Sheets API credentials,
-     then updates the status column (F2:F) in the specified spreadsheet with formatted
-     Jira status values.
+     then updates the status column (F2:F) and Last Checked column (I2:I) in the
+     specified spreadsheet with formatted Jira status values and a run timestamp.
      Args:
           ticket_dict (dict): Dictionary containing ticket data where each value contains
                a "Jira Status" key with the ticket's current status.
           creds: Google API credentials object for authenticating with the Sheets API.
+          last_checked_value (str): Timestamp string written to each tracker row in
+               the Last Checked column.
      Returns:
           None
      Raises:
@@ -126,14 +131,16 @@ def update_sheet_data(ticket_dict, creds):
                - "PASSED" and "FAILED" are converted to uppercase
                - Other non-None statuses are converted to title case
                - None/null statuses are replaced with "In Progress"
-          - Updates are applied to column F (status column) starting from row 2 (F2:F)
+          - Updates are applied to column F (status column) and I (Last Checked),
+            starting from row 2 (F2:F and I2:I)
           - SAMPLE_SPREADSHEET_ID must be defined in the module scope
      """
 
      try:
           service = build("sheets", "v4", credentials=creds)
                     
-          updates = []
+          status_updates = []
+          last_checked_updates = []
           for ticket_data in tqdm(ticket_dict.values(), "Updating Sheet"):
                jira_status = ticket_data.get("Jira Status")
                
@@ -146,19 +153,24 @@ def update_sheet_data(ticket_dict, creds):
                          jira_status = jira_status.upper()
                else:
                     jira_status = 'In Progress'
-               updates.append([jira_status])
+               status_updates.append([jira_status])
+               last_checked_updates.append([last_checked_value])
           
-          # Update the sheet with new values
-          body = {"values": updates}
-          service.spreadsheets().values().update(
+          # Update both Status and Last Checked columns together.
+          body = {
+               "valueInputOption": "USER_ENTERED",
+               "data": [
+                    {"range": "F2:F", "values": status_updates},
+                    {"range": "I2:I", "values": last_checked_updates},
+               ],
+          }
+          service.spreadsheets().values().batchUpdate(
                spreadsheetId=SAMPLE_SPREADSHEET_ID,
-               range="F2:F", # Only update the Status row
-               valueInputOption="USER_ENTERED",
                body=body
           ).execute()
           
           print("Sheet updated successfully.\n")
-          return len(updates) # Return rows changed
+          return len(status_updates) # Return rows changed
      
      except HttpError as err:
           print(f"Error updating sheet: {err}\n")

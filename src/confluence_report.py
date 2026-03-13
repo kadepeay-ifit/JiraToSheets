@@ -53,6 +53,7 @@ def _build_page_body(
     status_counts: dict,
     viewed_rows: int,
     execution_seconds: float,
+    last_checked_value: Optional[str] = None,
     chart_filename: Optional[str] = None,
 ) -> str:
     status_lines = []
@@ -83,6 +84,10 @@ def _build_page_body(
         </ac:image>
         """
 
+    last_checked_markup = ""
+    if last_checked_value:
+        last_checked_markup = f"<p>Last Checked value written to Tracker: {last_checked_value}</p>"
+
     return f"""
         <h1>Reporting stats for build version {build_version}</h1>
         <hr />
@@ -95,6 +100,7 @@ def _build_page_body(
         </ul>
 
         <p>Viewed {viewed_rows} rows on the Tracker.</p>
+        {last_checked_markup}
         <p>Program execution time: {_format_duration(execution_seconds)}</p>
         {chart_markup}
     """
@@ -162,6 +168,7 @@ def publish_report(
     viewed_rows: int,
     execution_seconds: float,
     chart_path: Optional[Path] = None,
+    last_checked_value: Optional[str] = None,
 ) -> Optional[str]:
     if not (USER_EMAIL and API_TOKEN and SPACE_KEY):
         print("Confluence config is incomplete (USER_EMAIL, API_TOKEN, SPACE_KEY). Skipping publish.\n")
@@ -175,6 +182,7 @@ def publish_report(
         status_counts=status_counts,
         viewed_rows=viewed_rows,
         execution_seconds=execution_seconds,
+        last_checked_value=last_checked_value,
     )
     created_page = _create_page(page_title, initial_body)
     page_id = created_page["id"]
@@ -190,6 +198,7 @@ def publish_report(
             status_counts=status_counts,
             viewed_rows=viewed_rows,
             execution_seconds=execution_seconds,
+            last_checked_value=last_checked_value,
             chart_filename=chart_path.name,
         )
         _update_page(page_id, page_title, page_version, body_with_chart)

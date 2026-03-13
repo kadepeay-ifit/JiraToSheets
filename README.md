@@ -21,7 +21,7 @@ API_TOKEN=your_jira_api_token
 USER_EMAIL=your_email@example.com
 BUILD_VERSION=Retail-2026-02
 SAMPLE_SPREADSHEET_ID=your_google_sheet_id
-SAMPLE_RANGE_NAME=A2:H
+SAMPLE_RANGE_NAME=A2:I
 # Confluence publishing (optional)
 SPACE_KEY=your_confluence_space_key
 PARENT_PAGE_ID=optional_parent_page_id
