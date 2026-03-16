@@ -1,17 +1,20 @@
 import os
+from dotenv import load_dotenv
 from google.auth.transport.requests import Request  
 from google.oauth2.credentials import Credentials 
 from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
 
+load_dotenv()
+
 # If modifying these scopes, delete the file token.json
 SCOPES = ["https://www.googleapis.com/auth/spreadsheets"]
 
 # The ID and range of a sample spreadsheet.
 # These can be overridden via environment variables to avoid code edits per run.
-SPREADSHEET_ID = os.getenv("SPREADSHEET_ID", "1DDoeKkUs7LKQX8xrGrqkH83GyI4zFR1oW3wccayjbfw")
-RANGE_NAME = os.getenv("RANGE_NAME", "'Tickets'!A2:I")
+SPREADSHEET_ID = os.getenv("SPREADSHEET_ID")
+RANGE_NAME = os.getenv("RANGE_NAME")
 
 
 def get_credential_data():

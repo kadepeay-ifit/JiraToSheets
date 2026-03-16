@@ -24,6 +24,9 @@ BUILD = os.getenv("BUILD_VERSION")
 JIRA_BASE_URL = os.getenv("JIRA_BASE_URL", "https://ifitdev.atlassian.net").rstrip("/")
 REQUEST_TIMEOUT_SECONDS = int(os.getenv("JIRA_REQUEST_TIMEOUT_SECONDS", "15"))
 SKIP_ROW_MARKERS = {"2026-01"}
+PAGE = "Ticket"
+STATUS_COLUMN = "F"
+LAST_CHECKED_COLUMN = "I"
 
 # User authentication constants
 API_TOKEN = os.getenv("API_TOKEN")
@@ -156,8 +159,8 @@ def update_sheet_data(ticket_rows, creds, last_checked_value):
                         jira_status = jira_status.upper()
               else:
                    jira_status = "In Progress"
-              updates.append({"range": f"'Tickets'!F{row_number}", "values": [[jira_status]]})
-              updates.append({"range": f"'Tickets'!I{row_number}", "values": [[last_checked_value]]})
+              updates.append({"range": f"'{PAGE}'!{STATUS_COLUMN}{row_number}", "values": [[jira_status]]})
+              updates.append({"range": f"'{PAGE}'!{LAST_CHECKED_COLUMN}{row_number}", "values": [[last_checked_value]]})
               updated_rows += 1
 
          if not updates:
