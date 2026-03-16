@@ -24,7 +24,7 @@ BUILD = os.getenv("BUILD_VERSION")
 JIRA_BASE_URL = os.getenv("JIRA_BASE_URL", "https://ifitdev.atlassian.net").rstrip("/")
 REQUEST_TIMEOUT_SECONDS = int(os.getenv("JIRA_REQUEST_TIMEOUT_SECONDS", "15"))
 SKIP_ROW_MARKERS = {"2026-01"}
-PAGE = "Ticket"
+PAGE = "Tickets"
 STATUS_COLUMN = "F"
 LAST_CHECKED_COLUMN = "I"
 
