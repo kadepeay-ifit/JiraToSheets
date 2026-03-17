@@ -101,8 +101,8 @@ def _build_page_body(
 
         <p>Viewed {viewed_rows} rows on the Tracker.</p>
         {last_checked_markup}
-        <p>Program execution time: {_format_duration(execution_seconds)}</p>
         {chart_markup}
+        <p>Program execution time: {_format_duration(execution_seconds)}</p>
     """
 
 
