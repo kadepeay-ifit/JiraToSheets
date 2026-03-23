@@ -27,6 +27,8 @@ SKIP_ROW_MARKERS = {"2026-01"}
 PAGE = "Tickets" # This could likely be hardcoded, but this is future-proofing
 STATUS_COLUMN = "F"
 LAST_CHECKED_COLUMN = "I"
+STATUS_DISPLAY_ORDER = ["passed", "failed", "untestable", "in progress", "monitoring", "blocked"]
+PRIORITY_DISPLAY_ORDER = ["lowest", "low", "medium", "high", "highest", "needs prioritization"]
 
 # User authentication constants
 API_TOKEN = os.getenv("API_TOKEN")
@@ -43,7 +45,82 @@ def validate_env_vars():
           raise RuntimeError(
                f"Missing required environment variables: {', '.join(missing)}"
           )
-     print("API credentials loaded successfully.\n")
+     print("Configuration loaded.")
+
+
+def _safe_percentage(count, total):
+     if total <= 0:
+          return 0.0
+     return round((count / total) * 100, 2)
+
+
+def _format_duration(seconds):
+     total_seconds = max(0, int(round(seconds)))
+     minutes, remaining_seconds = divmod(total_seconds, 60)
+     return f"{minutes}:{remaining_seconds:02d}"
+
+
+def _iter_display_counts(counts, preferred_order):
+     seen = set()
+     for key in preferred_order:
+          if key in counts:
+               seen.add(key)
+               yield key, int(counts[key])
+     for key in sorted(k for k in counts if k not in seen):
+          yield key, int(counts[key])
+
+
+def _print_count_breakdown(title, counts, total, display_order):
+     print(title)
+     for label, count in _iter_display_counts(counts, display_order):
+          print(
+               f"  - {label.title():<20} {count:>4} ({_safe_percentage(count, total):>6.2f}%)"
+          )
+
+
+def _print_run_summary(
+     *,
+     build_version,
+     difference,
+     difference_percentage,
+     status_counts,
+     priority_counts,
+     viewed_rows,
+     updated_rows,
+     last_checked_value,
+     execution_seconds,
+     pie_chart_path,
+     bar_chart_path,
+     confluence_page_id,
+):
+     divider = "=" * 72
+     print(divider)
+     print("Run summary")
+     print(divider)
+     print(f"Build version: {build_version}")
+     print(f"Rows viewed: {viewed_rows}")
+     print(f"Rows updated: {updated_rows}")
+     print(f"Status differences: {difference} ({difference_percentage:.2f}%)")
+     print(f"Last checked written: {last_checked_value}")
+     print(f"Execution time: {_format_duration(execution_seconds)}")
+     print(f"Pie chart: {pie_chart_path if pie_chart_path else 'not generated'}")
+     print(f"Bar chart: {bar_chart_path if bar_chart_path else 'not generated'}")
+     print(f"Confluence page: {confluence_page_id if confluence_page_id else 'not published'}")
+     print("-" * 72)
+     _print_count_breakdown(
+          "Status breakdown (sheet values):",
+          status_counts,
+          viewed_rows,
+          STATUS_DISPLAY_ORDER,
+     )
+     print("-" * 72)
+     _print_count_breakdown(
+          "Priority breakdown:",
+          priority_counts,
+          viewed_rows,
+          PRIORITY_DISPLAY_ORDER,
+     )
+     print(divider)
 
 def main():
      start = datetime.now() # Start the timer
@@ -75,49 +152,42 @@ def main():
      # Report Stats
      status_counts = status_frequency(ticket_rows)
      pi_chart_path = make_pie_chart(status_counts)
-     difference_percentage = round((difference / len(ticket_rows)) * 100, 2)
+     difference_percentage = _safe_percentage(difference, len(ticket_rows))
 
      priority_counts = priority_frequency(ticket_rows)
      bar_chart_path = make_bar_graph(priority_counts)
-     
-
-     print(f"    ------------------------------------------------    \n")
-
-     print(f"Reporting stats for build version {BUILD}.\n")
-
-     print(f"Number of Different Ticket Values: {difference}\n")
-
-     print(f"Difference before updating: {difference_percentage}%\n")
-
-     print(f"Count of each Status:")
-     for status, count in status_counts.items():
-          row_percentage = round((count / num_updated_rows) * 100, 2) if num_updated_rows else 0.0
-          print(f"    {status}: {count} - - - - ({row_percentage}%)\n")
-
-     print(f"Count of each Priority")
-     for priority, count in priority_counts.items():
-          row_percentage = round((count / num_updated_rows) * 100, 2) if num_updated_rows else 0.0
-          print(f"    {priority}: {count} - - - - ({row_percentage}%)\n")
-
-     print(f"Looked at {num_updated_rows} rows on the Tracker.\n")
-     print(f"Last Checked value written to Tracker: {last_checked_value}\n")
 
      # Report time taken to execute script
      end = datetime.now()
-     print(f"Program Finished in: {(end - start).total_seconds() // 60:.0f}:{(end - start).total_seconds() % 60:.0f}\n")
+     execution_seconds = (end - start).total_seconds()
 
      # Publish report to Confluence when configured.
-     confluence_report.publish_report(
+     confluence_page_id = confluence_report.publish_report(
           build_version=BUILD or "unknown-build",
           different_ticket_values=difference,
           difference_percentage=difference_percentage,
           status_counts=status_counts,
           priority_counts=priority_counts,
           viewed_rows=num_updated_rows,
-          execution_seconds=(end - start).total_seconds(),
+          execution_seconds=execution_seconds,
           pi_chart_path=pi_chart_path,
           bar_chart_path=bar_chart_path,
           last_checked_value=last_checked_value,
+     )
+
+     _print_run_summary(
+          build_version=BUILD or "unknown-build",
+          difference=difference,
+          difference_percentage=difference_percentage,
+          status_counts=status_counts,
+          priority_counts=priority_counts,
+          viewed_rows=len(ticket_rows),
+          updated_rows=num_updated_rows,
+          last_checked_value=last_checked_value,
+          execution_seconds=execution_seconds,
+          pie_chart_path=pi_chart_path,
+          bar_chart_path=bar_chart_path,
+          confluence_page_id=confluence_page_id,
      )
 
 def update_sheet_data(ticket_rows, creds, last_checked_value):
@@ -154,7 +224,7 @@ def update_sheet_data(ticket_rows, creds, last_checked_value):
          service = build("sheets", "v4", credentials=creds)
          updates = []
          updated_rows = 0
-         for ticket_data in tqdm(ticket_rows, "Updating Sheet"):
+         for ticket_data in tqdm(ticket_rows, desc="Update sheet", leave=False, unit="row"):
               row_number = ticket_data.get("Row Number")
               if not row_number:
                    continue
@@ -175,7 +245,7 @@ def update_sheet_data(ticket_rows, creds, last_checked_value):
               updated_rows += 1
 
          if not updates:
-              print("No row updates generated.\n")
+              print("No row updates generated.")
               return 0
 
          # Update both Status and Last Checked columns together.
@@ -188,11 +258,10 @@ def update_sheet_data(ticket_rows, creds, last_checked_value):
               body=body
          ).execute()
 
-         print("Sheet updated successfully.\n")
          return updated_rows  # Return rows changed
 
     except HttpError as err:
-         print(f"Error updating sheet: {err}\n")
+         print(f"Error updating sheet: {err}")
          return 0
 
 # Calculate the difference between ticket values on the Tracker and in Jira
@@ -203,19 +272,16 @@ def calculate_difference(ticket_rows):
          ticket_rows (list[dict]): Row-aware ticket records containing
               "Sheet Status" and "Jira Status" keys.
      Returns:
-          str: A string representation of the percentage of tickets with differing statuses,
-                rounded to 2 decimal places (e.g., "25.50%").
+          int: Number of ticket rows with differing sheet and Jira statuses.
      """
 
      difference = 0
-     for ticket_data in tqdm(ticket_rows, "Calculating Difference"):
+     for ticket_data in tqdm(ticket_rows, desc="Compare statuses", leave=False, unit="row"):
           sheet = ticket_data["Sheet Status"]
           jira = ticket_data["Jira Status"]
           # print(f"Sheet: {sheet}, Jira: {jira}\n")
           if(sheet != jira):
                difference += 1
-
-     print(f"Difference Percentage Calculated Successfully.\n")
 
      return difference
 
@@ -244,7 +310,9 @@ def create_dict(values):
 
      ticket_rows = []
      unknown_statuses = set()
-     for row_number, row in enumerate(tqdm(values, desc="Creating Dictionary"), start=2):
+     fallback_count = 0
+     fallback_samples = []
+     for row_number, row in enumerate(tqdm(values, desc="Fetch Jira statuses", leave=False, unit="row"), start=2):
           if not row:
                continue
           ticket_name = row[0].strip() if row[0] else ""
@@ -253,7 +321,7 @@ def create_dict(values):
 
           sheet_status = row[5].strip().lower() if len(row) > 5 and row[5] else "in progress"
 
-          priority = row[2].strip().lower()
+          priority = row[2].strip().lower() if len(row) > 2 and row[2] else "needs prioritization"
 
           # Translate ticket types between Jira and Sheets.
           try:
@@ -263,9 +331,9 @@ def create_dict(values):
                translated_jira_status = status_mapping.MAP.get(jira_status, "in progress")
           except (requests.exceptions.RequestException, ValueError) as exc:
                # Keep row alignment stable even when Jira lookups fail.
-               print(
-                    f"Falling back to sheet status for '{ticket_name}' due to Jira lookup error: {exc}\n"
-               )
+               fallback_count += 1
+               if len(fallback_samples) < 5:
+                    fallback_samples.append(f"{ticket_name}: {exc}")
                translated_jira_status = sheet_status
 
           ticket_rows.append({
@@ -276,11 +344,15 @@ def create_dict(values):
                "Jira Status": translated_jira_status
           })
 
-     print("Ticket Dictionary Created Successfully.\n")
+     if fallback_count:
+          print(
+               f"Used sheet status fallback for {fallback_count} Jira lookup(s). "
+               f"Examples: {'; '.join(fallback_samples)}"
+          )
      if unknown_statuses:
           print(
                "Encountered Jira statuses missing from status_mapping.MAP: "
-               f"{', '.join(sorted(unknown_statuses))}\n"
+               f"{', '.join(sorted(unknown_statuses))}"
           )
      return ticket_rows
 
@@ -352,13 +424,12 @@ def status_frequency(ticket_rows):
           'blocked': 0,
      }
 
-     for ticket_data in tqdm(ticket_rows, "Counting Status Frequency"):
+     for ticket_data in tqdm(ticket_rows, desc="Count statuses", leave=False, unit="row"):
           status = ticket_data.get("Sheet Status", "in progress")
           if status not in status_counts:
                status_counts[status] = 0
           status_counts[status] += 1
 
-     print("Status Frequency Counted Successfully.\n")
      return status_counts
 
 def priority_frequency(ticket_rows):
@@ -370,13 +441,12 @@ def priority_frequency(ticket_rows):
           'highest': 0,
      }
 
-     for ticket_data in tqdm(ticket_rows, "Counting Priority Frequency"):
-          priority = ticket_data.get("Priority", "Needs Prioritization")
+     for ticket_data in tqdm(ticket_rows, desc="Count priorities", leave=False, unit="row"):
+          priority = ticket_data.get("Priority", "needs prioritization")
           if priority not in priority_counts:
                priority_counts[priority] = 0
           priority_counts[priority] += 1
 
-     print("Priority Frequency Counted Successfully.\n")
      return priority_counts
 
 # Create and save a pie chart based off of the stability of the sheet
@@ -410,13 +480,13 @@ def make_pie_chart(status_counts):
      
      filtered_counts = {}
      colors = []
-     for key, val in tqdm(status_counts.items(), "Creating Pie Chart"):
+     for key, val in status_counts.items():
           if val > 0:
                filtered_counts[key] = val
                colors.append(color_mapping.get(key, "gray"))
 
      if not filtered_counts:
-          print("No status counts available to chart.\n")
+          print("No status counts available to chart.")
           return None
 
      plt.figure(figsize=(8, 8))
@@ -434,7 +504,7 @@ def make_pie_chart(status_counts):
      plt.savefig(output_path)
      plt.close()
 
-     print(f"Saved figure to {output_path}\n")
+     print(f"Saved pie chart: {output_path}")
      return output_path
 
 
@@ -451,13 +521,13 @@ def make_bar_graph(priority_counts):
 
      filtered_counts = {}
      colors = []
-     for key, val in tqdm(priority_counts.items(), "Creating Bar Graph"):
+     for key, val in priority_counts.items():
           if val > 0:
                filtered_counts[key] = val
                colors.append(color_mapping.get(key, "gray"))
 
      if not filtered_counts:
-          print("No priority counts available to graph.\n")
+          print("No priority counts available to graph.")
           return None
      
      plt.figure(figsize=(8, 8))
@@ -475,7 +545,7 @@ def make_bar_graph(priority_counts):
      plt.savefig(output_path)
      plt.close()
 
-     print(f"Saved figure to {output_path}\n")
+     print(f"Saved bar chart: {output_path}")
      return output_path
 
 if __name__ == "__main__":

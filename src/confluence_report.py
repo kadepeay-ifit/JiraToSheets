@@ -46,6 +46,57 @@ def _build_page_title(build_version: str) -> str:
     return f"{build_version} Updated On {formatted_datetime}"
 
 
+def _ordered_counts(counts: dict, preferred_order: list[str]) -> list[tuple[str, int]]:
+    ordered = []
+    seen = set()
+    for key in preferred_order:
+        if key in counts:
+            seen.add(key)
+            ordered.append((key, int(counts[key])))
+    for key in sorted(k for k in counts if k not in seen):
+        ordered.append((key, int(counts[key])))
+    return ordered
+
+
+def _build_counts_table(
+    *,
+    heading: str,
+    counts: dict,
+    preferred_order: list[str],
+    total: int,
+) -> str:
+    rows = []
+    for label, count in _ordered_counts(counts, preferred_order):
+        rows.append(
+            (
+                "<tr>"
+                f"<td>{label.title()}</td>"
+                f"<td>{count}</td>"
+                f"<td>{_safe_percentage(count, total):.2f}%</td>"
+                "</tr>"
+            )
+        )
+
+    return (
+        f"<h2>{heading}</h2>"
+        "<table>"
+        "<tbody>"
+        "<tr><th>Value</th><th>Count</th><th>% of Rows</th></tr>"
+        f"{''.join(rows)}"
+        "</tbody>"
+        "</table>"
+    )
+
+
+def _build_attachment_markup(heading: str, filename: str, alt_text: str) -> str:
+    return (
+        f"<h2>{heading}</h2>"
+        f'<ac:image ac:alt="{alt_text}">'
+        f'<ri:attachment ri:filename="{filename}" />'
+        "</ac:image>"
+    )
+
+
 def _build_page_body(
     *,
     build_version: str,
@@ -56,81 +107,73 @@ def _build_page_body(
     viewed_rows: int,
     execution_seconds: float,
     last_checked_value: Optional[str] = None,
-    chart_filename: Optional[str] = None,
+    pie_chart_filename: Optional[str] = None,
+    bar_chart_filename: Optional[str] = None,
 ) -> str:
-    status_lines = []
-    for status in STATUS_ORDER:
-        count = int(status_counts.get(status, 0))
-        status_lines.append(
-            (
-                f"<li>{status.title()}: {count} - - - - "
-                f"({_safe_percentage(count, viewed_rows)}%)</li>"
-            )
-        )
-    # Include unexpected statuses too so no data is hidden.
-    for status, count in status_counts.items():
-        if status not in STATUS_ORDER:
-            status_lines.append(
-                (
-                    f"<li>{status.title()}: {count} - - - - "
-                    f"({_safe_percentage(int(count), viewed_rows)}%)</li>"
-                )
-            )
-
-    # Now do the same for priority
-    priority_lines = []
-    for priority in PRIORITY_ORDER:
-        count = int(priority_counts.get(priority, 0))
-        priority_lines.append(
-            (
-                f"<li>{priority.title()}: {count} - - - - "
-                f"({_safe_percentage(count, viewed_rows)}%)</li>"
-            )
-        )
-    for priority, count in priority_counts.items():
-        if priority not in PRIORITY_ORDER:
-            priority_lines.append(
-                (
-                    f"<li>{priority.title()}: {count} - - - - "
-                    f"({_safe_percentage(int(count), viewed_rows)}%)</li>"
-                )
-            )
-
-
-    chart_markup = ""
-    if chart_filename:
-        chart_markup = f"""
-        <h2>Stability Chart</h2>
-        <ac:image ac:alt="Pie Chart for {build_version}">
-            <ri:attachment ri:filename="{chart_filename}" />
-        </ac:image>
-        """
-
-    last_checked_markup = ""
+    summary_rows = [
+        ("Build version", build_version),
+        ("Rows viewed", str(viewed_rows)),
+        ("Different ticket values", str(different_ticket_values)),
+        ("Difference before update", f"{round(difference_percentage, 2):.2f}%"),
+        ("Execution time", _format_duration(execution_seconds)),
+    ]
     if last_checked_value:
-        last_checked_markup = f"<p>Last Checked value written to Tracker: {last_checked_value}</p>"
+        summary_rows.append(("Last checked written", last_checked_value))
 
-    return f"""
-        <h1>Reporting stats for build version {build_version}</h1>
-        <hr />
-        <p>Number of Different Ticket Values: {different_ticket_values}</p>
-        <p>Difference before Updating Sheet: {round(difference_percentage, 2)}%</p>
+    summary_markup = "".join(
+        (
+            "<tr>"
+            f"<td>{label}</td>"
+            f"<td>{value}</td>"
+            "</tr>"
+        )
+        for label, value in summary_rows
+    )
 
-        <p>Count of each Status:</p>
-        <ul>
-            {''.join(status_lines)}
-        </ul>
+    status_table_markup = _build_counts_table(
+        heading="Status breakdown",
+        counts=status_counts,
+        preferred_order=STATUS_ORDER,
+        total=viewed_rows,
+    )
+    priority_table_markup = _build_counts_table(
+        heading="Priority breakdown",
+        counts=priority_counts,
+        preferred_order=PRIORITY_ORDER,
+        total=viewed_rows,
+    )
 
-        <p>Count of each Priority:</p>
-        <ul>
-            {''.join(priority_lines)}
-        </ul>
+    chart_sections = []
+    if pie_chart_filename:
+        chart_sections.append(
+            _build_attachment_markup(
+                "Stability chart",
+                pie_chart_filename,
+                f"Pie chart for {build_version}",
+            )
+        )
+    if bar_chart_filename:
+        chart_sections.append(
+            _build_attachment_markup(
+                "Priority chart",
+                bar_chart_filename,
+                f"Bar chart for {build_version}",
+            )
+        )
 
-        <p>Viewed {viewed_rows} rows on the Tracker.</p>
-        {last_checked_markup}
-        {chart_markup}
-        <p>Program execution time: {_format_duration(execution_seconds)}</p>
-    """
+    return (
+        f"<h1>Build report: {build_version}</h1>"
+        "<h2>Run summary</h2>"
+        "<table>"
+        "<tbody>"
+        "<tr><th>Metric</th><th>Value</th></tr>"
+        f"{summary_markup}"
+        "</tbody>"
+        "</table>"
+        f"{status_table_markup}"
+        f"{priority_table_markup}"
+        f"{''.join(chart_sections)}"
+    )
 
 
 def _create_page(title: str, body: str) -> dict:
@@ -200,7 +243,7 @@ def publish_report(
     last_checked_value: Optional[str] = None,
 ) -> Optional[str]:
     if not (USER_EMAIL and API_TOKEN and SPACE_KEY):
-        print("Confluence config is incomplete (USER_EMAIL, API_TOKEN, SPACE_KEY). Skipping publish.\n")
+        print("Confluence publish skipped: missing USER_EMAIL, API_TOKEN, or SPACE_KEY.")
         return None
 
     page_title = _build_page_title(build_version)
@@ -217,11 +260,26 @@ def publish_report(
     created_page = _create_page(page_title, initial_body)
     page_id = created_page["id"]
     page_version = int(created_page["version"]["number"])
-    print(f"Confluence page created with ID: {page_id}\n")
+    print(f"Confluence page created: {page_id}")
 
-    if pi_chart_path and pi_chart_path.exists():
-        _upload_attachment(page_id, pi_chart_path)
-        body_with_chart = _build_page_body(
+    pie_chart_filename = None
+    if pi_chart_path:
+        if pi_chart_path.exists():
+            _upload_attachment(page_id, pi_chart_path)
+            pie_chart_filename = pi_chart_path.name
+        else:
+            print(f"Pie chart path not found: {pi_chart_path}")
+
+    bar_chart_filename = None
+    if bar_chart_path:
+        if bar_chart_path.exists():
+            _upload_attachment(page_id, bar_chart_path)
+            bar_chart_filename = bar_chart_path.name
+        else:
+            print(f"Bar chart path not found: {bar_chart_path}")
+
+    if pie_chart_filename or bar_chart_filename:
+        body_with_charts = _build_page_body(
             build_version=build_version,
             different_ticket_values=different_ticket_values,
             difference_percentage=difference_percentage,
@@ -230,11 +288,11 @@ def publish_report(
             viewed_rows=viewed_rows,
             execution_seconds=execution_seconds,
             last_checked_value=last_checked_value,
-            chart_filename=pi_chart_path.name,
+            pie_chart_filename=pie_chart_filename,
+            bar_chart_filename=bar_chart_filename,
         )
-        _update_page(page_id, page_title, page_version, body_with_chart)
-        print(f"Uploaded and embedded chart: {pi_chart_path.name}\n")
-    elif pi_chart_path:
-        print(f"Chart path was provided but not found: {pi_chart_path}\n")
+        _update_page(page_id, page_title, page_version, body_with_charts)
+        chart_names = [name for name in [pie_chart_filename, bar_chart_filename] if name]
+        print(f"Confluence attachments uploaded: {', '.join(chart_names)}")
 
     return page_id
