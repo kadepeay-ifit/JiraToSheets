@@ -24,7 +24,7 @@ BUILD = os.getenv("BUILD_VERSION")
 JIRA_BASE_URL = os.getenv("JIRA_BASE_URL", "https://ifitdev.atlassian.net").rstrip("/")
 REQUEST_TIMEOUT_SECONDS = int(os.getenv("JIRA_REQUEST_TIMEOUT_SECONDS", "15"))
 SKIP_ROW_MARKERS = {"2026-01"}
-PAGE = "Tickets"
+PAGE = "Tickets" # This could likely be hardcoded, but this is future-proofing
 STATUS_COLUMN = "F"
 LAST_CHECKED_COLUMN = "I"
 
@@ -74,8 +74,12 @@ def main():
 
      # Report Stats
      status_counts = status_frequency(ticket_rows)
-     chart_path = make_pie_chart(status_counts)
+     pi_chart_path = make_pie_chart(status_counts)
      difference_percentage = round((difference / len(ticket_rows)) * 100, 2)
+
+     priority_counts = priority_frequency(ticket_rows)
+     bar_chart_path = make_bar_graph(priority_counts)
+     
 
      print(f"    ------------------------------------------------    \n")
 
@@ -90,6 +94,11 @@ def main():
           row_percentage = round((count / num_updated_rows) * 100, 2) if num_updated_rows else 0.0
           print(f"    {status}: {count} - - - - ({row_percentage}%)\n")
 
+     print(f"Count of each Priority")
+     for priority, count in priority_counts.items():
+          row_percentage = round((count / num_updated_rows) * 100, 2) if num_updated_rows else 0.0
+          print(f"    {priority}: {count} - - - - ({row_percentage}%)\n")
+
      print(f"Looked at {num_updated_rows} rows on the Tracker.\n")
      print(f"Last Checked value written to Tracker: {last_checked_value}\n")
 
@@ -103,9 +112,11 @@ def main():
           different_ticket_values=difference,
           difference_percentage=difference_percentage,
           status_counts=status_counts,
+          priority_counts=priority_counts,
           viewed_rows=num_updated_rows,
           execution_seconds=(end - start).total_seconds(),
-          chart_path=chart_path,
+          pi_chart_path=pi_chart_path,
+          bar_chart_path=bar_chart_path,
           last_checked_value=last_checked_value,
      )
 
@@ -242,6 +253,8 @@ def create_dict(values):
 
           sheet_status = row[5].strip().lower() if len(row) > 5 and row[5] else "in progress"
 
+          priority = row[2].strip().lower()
+
           # Translate ticket types between Jira and Sheets.
           try:
                jira_status = check_jira_ticket_status(ticket_name)
@@ -258,6 +271,7 @@ def create_dict(values):
           ticket_rows.append({
                "Row Number": row_number,
                "Ticket Name": ticket_name,
+               "Priority": priority,
                "Sheet Status": sheet_status,
                "Jira Status": translated_jira_status
           })
@@ -347,6 +361,24 @@ def status_frequency(ticket_rows):
      print("Status Frequency Counted Successfully.\n")
      return status_counts
 
+def priority_frequency(ticket_rows):
+     priority_counts = {
+          'lowest': 0,
+          'low': 0,
+          'medium': 0,
+          'high': 0,
+          'highest': 0,
+     }
+
+     for ticket_data in tqdm(ticket_rows, "Counting Priority Frequency"):
+          priority = ticket_data.get("Priority", "Needs Prioritization")
+          if priority not in priority_counts:
+               priority_counts[priority] = 0
+          priority_counts[priority] += 1
+
+     print("Priority Frequency Counted Successfully.\n")
+     return priority_counts
+
 # Create and save a pie chart based off of the stability of the sheet
 def make_pie_chart(status_counts):
      """
@@ -373,7 +405,7 @@ def make_pie_chart(status_counts):
           'in progress': 'yellow',
           'monitoring': 'mediumorchid',
           'blocked': 'orange',
-          '': 'black' # Just in case there is any blank values
+          '': 'gray' # Just in case there is any blank values
      }
      
      filtered_counts = {}
@@ -405,6 +437,9 @@ def make_pie_chart(status_counts):
      print(f"Saved figure to {output_path}\n")
      return output_path
 
+
+def make_bar_graph(priority_counts):
+     pass
 
 if __name__ == "__main__":
      main()

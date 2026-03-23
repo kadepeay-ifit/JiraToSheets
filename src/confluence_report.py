@@ -22,6 +22,7 @@ SPACE_KEY = os.getenv("SPACE_KEY")
 PARENT_PAGE_ID = os.getenv("PARENT_PAGE_ID")
 
 STATUS_ORDER = ["passed", "failed", "untestable", "in progress", "monitoring", "blocked"]
+PRIORITY_ORDER = ["lowest", "low", "medium", "high", "highest"]
 
 
 def _safe_percentage(count: int, total: int) -> float:
@@ -51,6 +52,7 @@ def _build_page_body(
     different_ticket_values: int,
     difference_percentage: float,
     status_counts: dict,
+    priority_counts: dict,
     viewed_rows: int,
     execution_seconds: float,
     last_checked_value: Optional[str] = None,
@@ -75,6 +77,26 @@ def _build_page_body(
                 )
             )
 
+    # Now do the same for priority
+    priority_lines = []
+    for priority in PRIORITY_ORDER:
+        count = int(priority_counts.get(priority, 0))
+        priority_lines.append(
+            (
+                f"<li>{priority.title()}: {count} - - - - "
+                f"({_safe_percentage(count, viewed_rows)}%)</li>"
+            )
+        )
+    for priority, count in priority_counts.items():
+        if priority not in PRIORITY_ORDER:
+            priority_lines.append(
+                (
+                    f"<li>{priority.title()}: {count} - - - - "
+                    f"({_safe_percentage(int(count), viewed_rows)}%)</li>"
+                )
+            )
+
+
     chart_markup = ""
     if chart_filename:
         chart_markup = f"""
@@ -97,6 +119,11 @@ def _build_page_body(
         <p>Count of each Status:</p>
         <ul>
             {''.join(status_lines)}
+        </ul>
+
+        <p>Count of each Priority:</p>
+        <ul>
+            {''.join(priority_lines)}
         </ul>
 
         <p>Viewed {viewed_rows} rows on the Tracker.</p>
@@ -165,9 +192,11 @@ def publish_report(
     different_ticket_values: int,
     difference_percentage: float,
     status_counts: dict,
+    priority_counts: dict,
     viewed_rows: int,
     execution_seconds: float,
-    chart_path: Optional[Path] = None,
+    pi_chart_path: Optional[Path] = None,
+    bar_chart_path: Optional[Path] = None,
     last_checked_value: Optional[str] = None,
 ) -> Optional[str]:
     if not (USER_EMAIL and API_TOKEN and SPACE_KEY):
@@ -180,6 +209,7 @@ def publish_report(
         different_ticket_values=different_ticket_values,
         difference_percentage=difference_percentage,
         status_counts=status_counts,
+        priority_counts=priority_counts,
         viewed_rows=viewed_rows,
         execution_seconds=execution_seconds,
         last_checked_value=last_checked_value,
@@ -189,21 +219,22 @@ def publish_report(
     page_version = int(created_page["version"]["number"])
     print(f"Confluence page created with ID: {page_id}\n")
 
-    if chart_path and chart_path.exists():
-        _upload_attachment(page_id, chart_path)
+    if pi_chart_path and pi_chart_path.exists():
+        _upload_attachment(page_id, pi_chart_path)
         body_with_chart = _build_page_body(
             build_version=build_version,
             different_ticket_values=different_ticket_values,
             difference_percentage=difference_percentage,
             status_counts=status_counts,
+            priority_counts=priority_counts,
             viewed_rows=viewed_rows,
             execution_seconds=execution_seconds,
             last_checked_value=last_checked_value,
-            chart_filename=chart_path.name,
+            chart_filename=pi_chart_path.name,
         )
         _update_page(page_id, page_title, page_version, body_with_chart)
-        print(f"Uploaded and embedded chart: {chart_path.name}\n")
-    elif chart_path:
-        print(f"Chart path was provided but not found: {chart_path}\n")
+        print(f"Uploaded and embedded chart: {pi_chart_path.name}\n")
+    elif pi_chart_path:
+        print(f"Chart path was provided but not found: {pi_chart_path}\n")
 
     return page_id
