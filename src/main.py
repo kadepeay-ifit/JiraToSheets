@@ -427,7 +427,7 @@ def make_pie_chart(status_counts):
      # Save the pie chart with datetime in ISO format
      current_datetime = datetime.now()
      formatted_datetime = current_datetime.strftime("%Y-%m-%d_%H-%M-%S")
-     fig_name = f"{BUILD}_{formatted_datetime}.png"
+     fig_name = f"{BUILD}_PI_{formatted_datetime}.png"
      output_dir = Path("images")
      output_dir.mkdir(parents=True, exist_ok=True)
      output_path = output_dir / fig_name
@@ -439,7 +439,44 @@ def make_pie_chart(status_counts):
 
 
 def make_bar_graph(priority_counts):
-     pass
+     
+     # Map priorities to a corresponding color
+     color_mapping = {
+          'lowest': 'skyblue',
+          'low': 'lightblue',
+          'medium': 'yellow',
+          'high': 'orange',
+          'highest': 'red',
+     }
+
+     filtered_counts = {}
+     colors = []
+     for key, val in tqdm(priority_counts.items(), "Creating Bar Graph"):
+          if val > 0:
+               filtered_counts[key] = val
+               colors.append(color_mapping.get(key, "gray"))
+
+     if not filtered_counts:
+          print("No priority counts available to graph.\n")
+          return None
+     
+     plt.figure(figsize=(8, 8))
+
+     plt.bar(filtered_counts.keys(), filtered_counts.values())
+     plt.title(f"Priority Health of {BUILD}")
+
+     # Save the bar graph with datetime in ISO format
+     current_datetime = datetime.now()
+     formatted_datetime = current_datetime.strftime("%Y-%m-%d_%H-%M-%S")
+     fig_name = f"{BUILD}_BAR_{formatted_datetime}.png"
+     output_dir = Path("images")
+     output_dir.mkdir(parents=True, exist_ok=True)
+     output_path = output_dir / fig_name
+     plt.savefig(output_path)
+     plt.close()
+
+     print(f"Saved figure to {output_path}\n")
+     return output_path
 
 if __name__ == "__main__":
      main()
