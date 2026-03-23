@@ -462,7 +462,7 @@ def make_bar_graph(priority_counts):
      
      plt.figure(figsize=(8, 8))
 
-     plt.bar(filtered_counts.keys(), filtered_counts.values())
+     plt.bar(filtered_counts.keys(), filtered_counts.values(), color=colors)
      plt.title(f"Priority Health of {BUILD}")
 
      # Save the bar graph with datetime in ISO format
