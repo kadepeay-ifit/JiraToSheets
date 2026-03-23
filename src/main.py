@@ -504,7 +504,7 @@ def make_pie_chart(status_counts):
      plt.savefig(output_path)
      plt.close()
 
-     print(f"Saved pie chart: {output_path}")
+     # print(f"Saved pie chart: {output_path}")
      return output_path
 
 
@@ -545,7 +545,7 @@ def make_bar_graph(priority_counts):
      plt.savefig(output_path)
      plt.close()
 
-     print(f"Saved bar chart: {output_path}")
+     # print(f"Saved bar chart: {output_path}")
      return output_path
 
 if __name__ == "__main__":

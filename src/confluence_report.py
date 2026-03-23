@@ -260,7 +260,7 @@ def publish_report(
     created_page = _create_page(page_title, initial_body)
     page_id = created_page["id"]
     page_version = int(created_page["version"]["number"])
-    print(f"Confluence page created: {page_id}")
+    # print(f"Confluence page created: {page_id}")
 
     pie_chart_filename = None
     if pi_chart_path:
@@ -293,6 +293,6 @@ def publish_report(
         )
         _update_page(page_id, page_title, page_version, body_with_charts)
         chart_names = [name for name in [pie_chart_filename, bar_chart_filename] if name]
-        print(f"Confluence attachments uploaded: {', '.join(chart_names)}")
+        # print(f"Confluence attachments uploaded: {', '.join(chart_names)}")
 
     return page_id
