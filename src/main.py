@@ -149,7 +149,7 @@ def main():
      # Update Sheets
      num_updated_rows = update_sheet_data(ticket_rows, creds, last_checked_value)
 
-     # Report Stats
+     # Report stats from tracker-aligned values.
      status_counts = status_frequency(ticket_rows)
      pi_chart_path = make_pie_chart(status_counts)
      difference_percentage = _safe_percentage(difference, len(ticket_rows))
@@ -223,6 +223,7 @@ def update_sheet_data(ticket_rows, creds, last_checked_value):
     try:
          service = build("sheets", "v4", credentials=creds)
          updates = []
+         normalized_status_updates = []
          updated_rows = 0
          for ticket_data in tqdm(ticket_rows, desc="Update sheet", leave=False, unit="row"):
               row_number = ticket_data.get("Row Number")
@@ -230,18 +231,14 @@ def update_sheet_data(ticket_rows, creds, last_checked_value):
                    continue
 
               jira_status = ticket_data.get("Jira Status")
+              normalized_tracker_status = jira_status.lower() if jira_status else "in progress"
+              sheet_display_status = normalized_tracker_status.title()
+              if normalized_tracker_status in {"passed", "failed"}:
+                   sheet_display_status = normalized_tracker_status.upper()
 
-              # Capitalize for sheet format
-              # Sheet uses title for most, passed and failed are all caps
-              # Potentially update on sheets itself how statuses are capitalized
-              if jira_status is not None:
-                   jira_status = jira_status.title()
-                   if jira_status.lower() == "passed" or jira_status.lower() == "failed":
-                        jira_status = jira_status.upper()
-              else:
-                   jira_status = "In Progress"
-              updates.append({"range": f"'{PAGE}'!{STATUS_COLUMN}{row_number}", "values": [[jira_status]]})
+              updates.append({"range": f"'{PAGE}'!{STATUS_COLUMN}{row_number}", "values": [[sheet_display_status]]})
               updates.append({"range": f"'{PAGE}'!{LAST_CHECKED_COLUMN}{row_number}", "values": [[last_checked_value]]})
+              normalized_status_updates.append((ticket_data, normalized_tracker_status))
               updated_rows += 1
 
          if not updates:
@@ -257,6 +254,9 @@ def update_sheet_data(ticket_rows, creds, last_checked_value):
               spreadsheetId=SPREADSHEET_ID,
               body=body
          ).execute()
+
+         for ticket_data, normalized_tracker_status in normalized_status_updates:
+              ticket_data["Sheet Status"] = normalized_tracker_status
 
          return updated_rows  # Return rows changed
 
