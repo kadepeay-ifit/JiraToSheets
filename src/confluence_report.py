@@ -109,6 +109,7 @@ def _build_page_body(
     last_checked_value: Optional[str] = None,
     pie_chart_filename: Optional[str] = None,
     bar_chart_filename: Optional[str] = None,
+    failed_bug_links: Optional[list[dict[str, str]]] = None,
 ) -> str:
     summary_rows = [
         ("Build version", build_version),
@@ -161,6 +162,29 @@ def _build_page_body(
             )
         )
 
+    failed_bug_rows = []
+    for failed_bug in failed_bug_links or []:
+        ticket = failed_bug.get("ticket", "").strip()   
+        url = failed_bug.get("url", "").strip()
+        if not ticket or not url:
+            continue
+        failed_bug_rows.append(
+            (
+                "<ul>"
+                f"<li><a href=\"{url}\">{ticket}</a></li>"
+                "</ul>"
+            )
+        )
+    failed_bug_markup = (
+        "<h2>Failed bugs</h2>"
+        "<p>No failed bugs reported in this run.</p>"
+    )
+    if failed_bug_rows:
+        failed_bug_markup = (
+            "<h2>Failed bugs</h2>"
+            f"{''.join(failed_bug_rows)}"
+        )
+
     return (
         f"<h1>Build report: {build_version}</h1>"
         "<h2>Run summary</h2>"
@@ -172,6 +196,7 @@ def _build_page_body(
         "</table>"
         f"{status_table_markup}"
         f"{priority_table_markup}"
+        f"{failed_bug_markup}"
         f"{''.join(chart_sections)}"
     )
 
@@ -241,6 +266,7 @@ def publish_report(
     pi_chart_path: Optional[Path] = None,
     bar_chart_path: Optional[Path] = None,
     last_checked_value: Optional[str] = None,
+    failed_bug_links: Optional[list[dict[str, str]]] = None,
 ) -> Optional[str]:
     if not (USER_EMAIL and API_TOKEN and SPACE_KEY):
         print("Confluence publish skipped: missing USER_EMAIL, API_TOKEN, or SPACE_KEY.")
@@ -256,6 +282,7 @@ def publish_report(
         viewed_rows=viewed_rows,
         execution_seconds=execution_seconds,
         last_checked_value=last_checked_value,
+        failed_bug_links=failed_bug_links,
     )
     created_page = _create_page(page_title, initial_body)
     page_id = created_page["id"]
@@ -290,6 +317,7 @@ def publish_report(
             last_checked_value=last_checked_value,
             pie_chart_filename=pie_chart_filename,
             bar_chart_filename=bar_chart_filename,
+            failed_bug_links=failed_bug_links,
         )
         _update_page(page_id, page_title, page_version, body_with_charts)
         chart_names = [name for name in [pie_chart_filename, bar_chart_filename] if name]

@@ -91,6 +91,7 @@ def _print_run_summary(
      execution_seconds,
      pie_chart_path,
      bar_chart_path,
+     failed_bugs,
      confluence_page_id,
 ):
      divider = "=" * 72
@@ -103,6 +104,7 @@ def _print_run_summary(
      print(f"Status differences: {difference} ({difference_percentage:.2f}%)")
      print(f"Last checked written: {last_checked_value}")
      print(f"Execution time: {_format_duration(execution_seconds)}")
+     print(f"Failed bugs: {len(failed_bugs)}")
      print(f"Pie chart: {pie_chart_path if pie_chart_path else 'not generated'}")
      print(f"Bar chart: {bar_chart_path if bar_chart_path else 'not generated'}")
      print(f"Confluence page: {confluence_page_id if confluence_page_id else 'not published'}")
@@ -120,7 +122,26 @@ def _print_run_summary(
           viewed_rows,
           PRIORITY_DISPLAY_ORDER,
      )
+     if failed_bugs:
+          print("-" * 72)
+          print("Failed bug links:")
+          for failed_bug in failed_bugs:
+               print(f" - {failed_bug['ticket']}: {failed_bug['url']}")
      print(divider)
+
+def get_failed_bug_links(ticket_rows):
+     failed_bug_links = {}
+     for ticket_data in ticket_rows:
+          ticket_name = ticket_data.get("Ticket Name", "").strip()
+          status = ticket_data.get("Sheet Status", "").strip().lower()
+          if not ticket_name or status != "failed":
+               continue
+          failed_bug_links[ticket_name] = f"{JIRA_BASE_URL}/browse/{ticket_name}"
+
+     return [
+          {"ticket": ticket_name, "url": failed_bug_links[ticket_name]}
+          for ticket_name in sorted(failed_bug_links)
+     ]
 
 def main():
      start = datetime.now() # Start the timer
@@ -156,6 +177,7 @@ def main():
 
      priority_counts = priority_frequency(ticket_rows)
      bar_chart_path = make_bar_graph(priority_counts)
+     failed_bug_links = get_failed_bug_links(ticket_rows)
 
      # Report time taken to execute script
      end = datetime.now()
@@ -173,6 +195,7 @@ def main():
           pi_chart_path=pi_chart_path,
           bar_chart_path=bar_chart_path,
           last_checked_value=last_checked_value,
+          failed_bug_links=failed_bug_links,
      )
 
      _print_run_summary(
@@ -187,6 +210,7 @@ def main():
           execution_seconds=execution_seconds,
           pie_chart_path=pi_chart_path,
           bar_chart_path=bar_chart_path,
+          failed_bugs=failed_bug_links,
           confluence_page_id=confluence_page_id,
      )
 
@@ -277,8 +301,8 @@ def calculate_difference(ticket_rows):
 
      difference = 0
      for ticket_data in tqdm(ticket_rows, desc="Compare statuses", leave=False, unit="row"):
-          sheet = ticket_data["Sheet Status"]
-          jira = ticket_data["Jira Status"]
+          sheet = ticket_data["Sheet Status"].lower() # Just to REALLY make sure
+          jira = ticket_data["Jira Status"].lower()
           # print(f"Sheet: {sheet}, Jira: {jira}\n")
           if(sheet != jira):
                difference += 1
