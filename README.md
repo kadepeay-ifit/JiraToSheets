@@ -55,7 +55,7 @@ On first run, Google OAuth will prompt for account authorization and create `tok
 `src/main.py` now publishes a Confluence page automatically at the end of a run when these variables are configured: `USER_EMAIL`, `API_TOKEN`, and `SPACE_KEY`.
 
 - The page is created via Confluence REST API.
-- The generated pie chart from `images/` is uploaded as a page attachment.
+- The generated charts from `images/` are uploaded as page attachments.
 - The page is updated to embed that uploaded attachment (instead of a local filesystem image path).
 - If Confluence variables are not configured, publishing is skipped safely.
 
@@ -66,3 +66,4 @@ On first run, Google OAuth will prompt for account authorization and create `tok
 | `src/main.py` | Entry point. Coordinates sync, comparison, status metrics, and chart generation. |
 | `src/google_services.py` | Google authentication and Sheets API read helpers. |
 | `src/status_mapping.py` | Mapping layer between Jira statuses and tracker statuses. |
+| `src/confluence_report.py` | Creates and publishes reported information to Confluence page. |
