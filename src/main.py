@@ -150,7 +150,12 @@ def main():
 
      validate_env_vars()
 
-     BUILD = get_build()
+     BUILD, build_page_tickets = get_build_page_tickets()
+
+     print(BUILD)
+     print()
+     for key, val in build_page_tickets.items():
+          print(f"{key}, {val}")
 
      # Get Credentials
      creds = google_services.get_credential_data()
@@ -436,6 +441,9 @@ def get_build_page_tickets():
      response.raise_for_status()
      page_data = response.json()
 
+     # Grab the build number from the page title
+     build = page_data.get('title', {}).split('|')[1].strip()
+
      # Grab content from the page_data
      content = page_data.get('body', {}).get('storage', {}).get('value')
 
@@ -451,23 +459,9 @@ def get_build_page_tickets():
                bug_body = parts[2].strip()
                clean_bugs[bug_title] = bug_body
 
-     return(clean_bugs)
+     # This returns both the Build number as well as the dictionary of bugs present on the build page
+     return(build, clean_bugs)
 
-def get_build():
-     # Grab current build page data
-     url = f"{JIRA_BASE_URL}/wiki/api/v2/pages/{CURRENT_BUILD_PAGE_ID}?body-format=storage"
-     headers = {
-          "Accept": "application/json",
-          "Content-Type": "application/json"
-     }
-     auth = HTTPBasicAuth(USER_EMAIL, API_TOKEN)
-     response = requests.get(url, headers=headers, auth=auth, timeout=REQUEST_TIMEOUT_SECONDS)
-     response.raise_for_status()
-     page_data = response.json()
-
-     # Grab content from the page_data
-     build = page_data.get('title', {}).split('|')[1].strip()
-     return(build)
 
 # Count Frequency of each status type
 def status_frequency(ticket_rows):
@@ -526,5 +520,4 @@ def priority_frequency(ticket_rows):
 
 
 if __name__ == "__main__":
-     # main()
-     get_build_page_tickets()
+     main()
