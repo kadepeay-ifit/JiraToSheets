@@ -12,14 +12,14 @@ from tqdm import tqdm  # For progress bars
 from google_services import SPREADSHEET_ID
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
-
+from bs4 import BeautifulSoup
 
 # load_dotenv() will load variables from a local .env file during development.
 # In GitHub Actions, it will be ignored as there is no .env file,
 # and the variable is already set in the environment by the workflow file.
 load_dotenv()
 
-BUILD = os.getenv("BUILD_VERSION")
+# BUILD = os.getenv("BUILD_VERSION")
 JIRA_BASE_URL = os.getenv("JIRA_BASE_URL", "https://ifitdev.atlassian.net").rstrip("/")
 REQUEST_TIMEOUT_SECONDS = int(os.getenv("JIRA_REQUEST_TIMEOUT_SECONDS", "15"))
 CURRENT_BUILD_PAGE_ID = os.getenv("CURRENT_BUILD_PAGE_ID")
@@ -149,6 +149,8 @@ def main():
      last_checked_value = start.strftime("%Y-%m-%d") # Date only for this value
 
      validate_env_vars()
+
+     BUILD = get_build()
 
      # Get Credentials
      creds = google_services.get_credential_data()
@@ -422,7 +424,8 @@ def check_jira_ticket_status(ticket_id):
 
 # This function is intended to go to the current build page, and add any tickets that aren't 
 # currently on the Tracker, to the Tracker
-def add_tickets_to_tracker():
+def get_build_page_tickets():
+     # Grab current build page data
      url = f"{JIRA_BASE_URL}/wiki/api/v2/pages/{CURRENT_BUILD_PAGE_ID}?body-format=storage"
      headers = {
           "Accept": "application/json",
@@ -434,10 +437,34 @@ def add_tickets_to_tracker():
      page_data = response.json()
 
      # Grab content from the page_data
-     title = page_data.get('title')
      content = page_data.get('body', {}).get('storage', {}).get('value')
-     print(content)
+     # print(content)
 
+     # Parse the content to get just bug information
+     soup = BeautifulSoup(content, 'html.parser')
+     dirty_bugs = soup.find_all('li')
+     clean_bugs = [li.get_text(strip=True)[1:] for li in dirty_bugs]
+     # for index, item in enumerate(clean_bugs, 1):
+     #      print(f"{index}. {item}")
+
+     return(clean_bugs)
+     # TODO: Return list of bugs that are present on the build page. Later, these can be used to add missing bugs to the tracker
+
+def get_build():
+     # Grab current build page data
+     url = f"{JIRA_BASE_URL}/wiki/api/v2/pages/{CURRENT_BUILD_PAGE_ID}?body-format=storage"
+     headers = {
+          "Accept": "application/json",
+          "Content-Type": "application/json"
+     }
+     auth = HTTPBasicAuth(USER_EMAIL, API_TOKEN)
+     response = requests.get(url, headers=headers, auth=auth, timeout=REQUEST_TIMEOUT_SECONDS)
+     response.raise_for_status()
+     page_data = response.json()
+
+     # Grab content from the page_data
+     build = page_data.get('title', {}).split('|')[1].strip()
+     return(build)
 
 # Count Frequency of each status type
 def status_frequency(ticket_rows):
@@ -496,5 +523,5 @@ def priority_frequency(ticket_rows):
 
 
 if __name__ == "__main__":
-     # main()
-     add_tickets_to_tracker()
+     main()
+     # get_build_page_tickets()

@@ -1,0 +1,214 @@
+<table><tbody>
+<tr>
+<td><p><strong>App</strong></p></td>
+<td><p><strong>Version</strong></p></td>
+<td><p><strong>Branch</strong></p></td>
+<td><p><strong>Release Date</strong></p></td>
+<td><p><strong>Distribution Type</strong></p></td>
+<td><p><strong>Region Type</strong></p></td>
+</tr>
+<tr>
+<td><p><strong>Arda (System Settings)</strong></p></td>
+<td><p><a href="https://ifit.io/4d23uhI">1.44.5.1315</a></p></td>
+<td><p><code>rc_retail_2026_02</code></p></td>
+<td><p><code>3/24/2026</code></p></td>
+<td><p><code>EXTERNAL</code></p></td>
+<td><p><code>NOT_CHINA</code></p></td>
+</tr>
+<tr>
+<td><p><strong>Eru (iFIT Admin)</strong></p></td>
+<td><p><a href="https://ifit.io/4rUZ93N">2.39.6.2783</a></p></td>
+<td><p><code>rc_retail_2026_02</code></p></td>
+<td><p><code>3/24/2026</code></p></td>
+<td><p><code>EXTERNAL</code></p></td>
+<td><p><code>NOT_CHINA</code></p></td>
+</tr>
+<tr>
+<td><p><strong>Gandalf (Account Login)</strong></p></td>
+<td><p><a href="https://ifit.io/3NUgnjH">1.43.5.1197</a></p></td>
+<td><p><code>rc_retail_2026_02</code></p></td>
+<td><p><code>3/24/2026</code></p></td>
+<td><p><code>EXTERNAL</code></p></td>
+<td><p><code>NOT_CHINA</code></p></td>
+</tr>
+<tr>
+<td><p><strong>Glassos-Kotlin (GlassOS) <ac:structured-macro ac:name="status" ac:schema-version="1" ac:macro-id="6c427ac0-b450-4a52-97eb-b0aba930c78c"><ac:parameter ac:name="color">Red</ac:parameter><ac:parameter ac:name="title">New</ac:parameter><ac:parameter ac:name="subtle">false</ac:parameter></ac:structured-macro></strong></p></td>
+<td><p><a href="https://ifit.io/3PDEoMo">8.37.0.1736</a></p></td>
+<td><p><code>main</code></p></td>
+<td><p><code>3/27/2026</code></p></td>
+<td><p><code>EXTERNAL</code></p></td>
+<td><p><code>NOT_CHINA</code></p></td>
+</tr>
+<tr>
+<td><p><strong>Launcher (Launcher)</strong></p></td>
+<td><p><a href="https://ifit.io/4bLTkzC">2.47.4.1249</a></p></td>
+<td><p><code>rc_retail_2026_02</code></p></td>
+<td><p><code>3/24/2026</code></p></td>
+<td><p><code>EXTERNAL</code></p></td>
+<td><p><code>NOT_CHINA</code></p></td>
+</tr>
+<tr>
+<td><p><strong>Mithlond (Content Library) <ac:structured-macro ac:name="status" ac:schema-version="1" ac:macro-id="4182e0c2-796c-417a-a22b-52f25176bd58"><ac:parameter ac:name="color">Red</ac:parameter><ac:parameter ac:name="title">New</ac:parameter><ac:parameter ac:name="subtle">false</ac:parameter></ac:structured-macro></strong></p></td>
+<td><p><a href="https://ifit.io/41wb5hk">1.47.9.1686</a></p></td>
+<td><p><code>rc_retail_2026_02</code></p></td>
+<td><p><code>3/27/2026</code></p></td>
+<td><p><code>EXTERNAL</code></p></td>
+<td><p><code>NOT_CHINA</code></p></td>
+</tr>
+<tr>
+<td><p><strong>Rivendell (Workout Player) <ac:structured-macro ac:name="status" ac:schema-version="1" ac:macro-id="49bd22dc-b59f-431b-aff4-04314aa4a7fe"><ac:parameter ac:name="color">Red</ac:parameter><ac:parameter ac:name="title">New</ac:parameter><ac:parameter ac:name="subtle">false</ac:parameter></ac:structured-macro></strong></p></td>
+<td><p><a href="https://ifit.io/4tetDi9">1.51.2.1468</a></p></td>
+<td><p><code>rc_retail_2026_02</code></p></td>
+<td><p><code>3/27/2026</code></p></td>
+<td><p><code>EXTERNAL</code></p></td>
+<td><p><code>NOT_CHINA</code></p></td>
+</tr>
+</tbody></table>
+
+
+<ac:structured-macro ac:name="expand" ac:schema-version="1" ac:macro-id="0794f358-2ae7-4059-a94a-8cbe07f9adc6"><ac:parameter ac:name="title">Xenon Fellowship JSON</ac:parameter><ac:rich-text-body>
+<ac:structured-macro ac:name="code" ac:schema-version="1" ac:macro-id="5a0f4aec-cb72-4162-b26c-a6e4c130b7e3"><ac:plain-text-body><![CDATA[{
+  "valinor": {
+    "apps": {
+      "com.ifit.arda": "1.44.5.1315",
+      "com.ifit.eriador": "0.0.17.34",
+      "com.ifit.eru": "2.39.6.2783",
+      "com.ifit.gandalf": "1.43.5.1197",
+      "com.ifit.glassos_service": "8.37.0.1736",
+      "com.ifit.launcher": "2.47.4.1249",
+      "com.ifit.mithlond": "1.47.9.1686",
+      "com.ifit.rivendell": "1.51.2.1468"
+    },
+    "canary": false,
+    "forced": true,
+    "install-size": 1
+  }
+}
+]]></ac:plain-text-body></ac:structured-macro></ac:rich-text-body></ac:structured-macro>
+
+<ac:structured-macro ac:name="expand" ac:schema-version="1" ac:macro-id="e0ac31bc-a568-46f7-b93c-a1bb258c62e6"><ac:parameter ac:name="title">Argon Fellowship JSON</ac:parameter><ac:rich-text-body>
+<ac:structured-macro ac:name="code" ac:schema-version="1" ac:macro-id="9cbeb20e-69d1-4e86-9245-8f868487aa1b"><ac:plain-text-body><![CDATA[{
+  "valinor": {
+    "apps": {
+      "com.ifit.arda": "1.44.5.1315",
+      "com.ifit.eru": "2.39.6.2783",
+      "com.ifit.gandalf": "1.43.5.1197",
+      "com.ifit.glassos_service": "8.37.0.1736",
+      "com.ifit.launcher": "2.47.4.1249",
+      "com.ifit.mithlond": "1.47.9.1686",
+      "com.ifit.rivendell": "1.51.2.1468"
+    },
+    "canary": false,
+    "forced": true,
+    "install-size": 400
+  },
+  "wolf": {
+    "apps": {
+      "com.ifit.arda": "1.0.26.43",
+      "com.ifit.eru": "2.13.9.1852",
+      "com.ifit.launcher": "1.1.1.31",
+      "com.ifit.standalone": "2.6.90.4963"
+    },
+    "canary": false,
+    "forced": false
+  }
+}
+]]></ac:plain-text-body></ac:structured-macro></ac:rich-text-body></ac:structured-macro>
+
+
+<h4>🧑&zwj;💻 Install Script - Copy/Paste 👇 into a Terminal to install 👆 (<a href="https://gist.github.com/valinorbot2/22bde0b88599b0db9a34dc40f31bde45">📜 Gist</a>)</h4>
+<ac:structured-macro ac:name="code" ac:schema-version="1" ac:macro-id="988f8bdb-d67e-4708-a1d5-c4e96c94c867"><ac:plain-text-body><![CDATA[curl -L https://gist.github.com/valinorbot2/22bde0b88599b0db9a34dc40f31bde45/raw | bash]]></ac:plain-text-body></ac:structured-macro>
+<h2>Release Notes (<em>Auto-generated from Jira component <code>Retail-2026-02</code></em>)<ac:structured-macro ac:name="expand" ac:schema-version="1" ac:macro-id="7584a4f1-8d0e-44c5-933c-e18ccda7dab6"><ac:parameter ac:name="title">Tier 1 Tickets</ac:parameter><ac:rich-text-body>
+
+<h2>Tier 1</h2>
+<h3>Miscellanous / No Epic</h3>
+<ul>
+	<li>🪲 <a href="https://ifitdev.atlassian.net/browse/CRY-560">CRY-560</a> - Media volume goes to max when Feed.FM is turned off</li>
+	<li>🪲 <a href="https://ifitdev.atlassian.net/browse/CRY-517">CRY-517</a> - &lsquo;End Media&rsquo; Prompt Fails to Display After Workout Completion on Prime Video</li>
+	<li>🪲 <a href="https://ifitdev.atlassian.net/browse/CRY-118">CRY-118</a> - The console beeps constantly even when the user is not adjusting the volume.</li>
+</ul>
+
+
+<h3>Playback Controls (all modalities)</h3>
+<ul>
+	<li>🪲 <a href="https://ifitdev.atlassian.net/browse/TROL-5147">TROL-5147</a> - Playback Tap state should not show Follow Trainer button</li>
+	<li>🪲 <a href="https://ifitdev.atlassian.net/browse/CRY-515">CRY-515</a> - Revert changes to inworkout charts widget and find a different solution for recovery behavior</li>
+</ul>
+
+
+<h3>Volume Simplification</h3>
+<ul>
+	<li>🪲 <a href="https://ifitdev.atlassian.net/browse/TROL-5076">TROL-5076</a> - No beep sounds when adjusting physical incline/speed during manual/VOD workouts, paused time, or when pressing the stop button (Xenon- except Ultra1/3)</li>
+</ul>
+</ac:rich-text-body></ac:structured-macro></h2>
+<hr />
+
+<h2>Tier 1 &amp; 2</h2>
+<h3>Dumpster Fire</h3>
+<ul>
+	<li>🪲 <a href="https://ifitdev.atlassian.net/browse/CRY-202">CRY-202</a> - 73e, 37u, 30d Crashlytics Linked Issue com.ifit.glassos_common.grpc.security.GlassOSClientInterceptor$interceptCall$1$start$modifiedListener$1.onClose</li>
+</ul>
+
+
+<h3>Free User Experience with Maps</h3>
+<ul>
+	<li>🔖 <a href="https://ifitdev.atlassian.net/browse/TROL-5060">TROL-5060</a> - Add translations for new text</li>
+</ul>
+
+
+<h3>Maintenance</h3>
+<ul>
+	<li>🪲 <a href="https://ifitdev.atlassian.net/browse/CRY-373">CRY-373</a> - 1400e,945u,30dCrashlytics Linked Issue com.ifit.glassos_programmedworkout_service.impl.ProgrammedWorkoutSessionServiceImpl.start</li>
+	<li>🪲 <a href="https://ifitdev.atlassian.net/browse/CRY-206">CRY-206</a> - 17e, 17u, 30d Crashlytics Linked Issue com.ifit.val_contentdiscovery_core.component.CdcToolBarKt.CdcToolBar</li>
+	<li>🪲 <a href="https://ifitdev.atlassian.net/browse/CRY-201">CRY-201</a> - 11e, 11u, 30d Crashlytics Linked Issue com.ifit.glassos_workout_core.workout_data_storage.realm.RealmWorkoutDataStorageImpl$findActivityLogsOlderThanMs$2.invokeSuspend</li>
+</ul>
+
+
+<h3>Miscellanous / No Epic</h3>
+<ul>
+	<li>🪲 <a href="https://ifitdev.atlassian.net/browse/CRY-560">CRY-560</a> - Media volume goes to max when Feed.FM is turned off</li>
+	<li>🪲 <a href="https://ifitdev.atlassian.net/browse/CRY-517">CRY-517</a> - &lsquo;End Media&rsquo; Prompt Fails to Display After Workout Completion on Prime Video</li>
+	<li>🪲 <a href="https://ifitdev.atlassian.net/browse/CRY-118">CRY-118</a> - The console beeps constantly even when the user is not adjusting the volume.</li>
+	<li>🪲 <a href="https://ifitdev.atlassian.net/browse/VAL-8451">VAL-8451</a> - Playback Transition timing is off for tapped state behavior.</li>
+	<li>🪲 <a href="https://ifitdev.atlassian.net/browse/TROL-4949">TROL-4949</a> - 97e, 94u, 30dCrashlytics Linked Issue com.ifit.val_workoutsession_handler.impl.SessionPromptServiceImpl$4.invokeSuspend</li>
+	<li>🪲 <a href="https://ifitdev.atlassian.net/browse/FRO-5532">FRO-5532</a> - Crashlytics Linked Issue com.ifit.val_inworkoutcharts_widget.data.impl.BaseChartDataFeatureCoordinator.getWorkout</li>
+	<li>🪲 <a href="https://ifitdev.atlassian.net/browse/FRO-5486">FRO-5486</a> - Crashlytics Linked Issue LazyDsl.kt - com.ifit.val_metric_widgets.pinnable.PinnableWidgetTrayImpl$DrawWidget$lambda$21$lambda$20$$inlined$itemsIndexed$default$3.invoke</li>
+	<li>🪲 <a href="https://ifitdev.atlassian.net/browse/CRY-522">CRY-522</a> - Crashlytics Linked Issue com.ifit.val_contentdiscovery_core.util.nav.WorkoutNavigationService.startWorkout</li>
+	<li>🪲 <a href="https://ifitdev.atlassian.net/browse/CRY-438">CRY-438</a> - Crashlytics Linked Issue com.ifit.val_machinesetup_feature.components.WifiSectionComponentKt.WifiSectionComponent</li>
+	<li>🪲 <a href="https://ifitdev.atlassian.net/browse/CRY-429">CRY-429</a> - Retail Retail consoles fail to connect to the internet if the connection is weak</li>
+	<li>🔖 <a href="https://ifitdev.atlassian.net/browse/CRY-420">CRY-420</a> - Do not reinitialize feature flags in AnalyticsService</li>
+	<li>🪲 <a href="https://ifitdev.atlassian.net/browse/CRY-255">CRY-255</a> - Crashlytics Linked Issue com.squareup.moshi.JsonDataException.&lt;init&gt;</li>
+	<li>🪲 <a href="https://ifitdev.atlassian.net/browse/CRY-244">CRY-244</a> - 242e, 234u, 30dCrashlytics Linked Issue io.realm.kotlin.internal.SuspendableWriter$write$2.invokeSuspend</li>
+	<li>🪲 <a href="https://ifitdev.atlassian.net/browse/CRY-208">CRY-208</a> - Crashlytics Linked Issue com.ifit.val_workout_core.infrastructure.WorkoutEssentials.getUser</li>
+	<li>🔖 <a href="https://ifitdev.atlassian.net/browse/CRY-172">CRY-172</a> - FeatureFlag and FeatureGate Defaults Overriding Cached Values</li>
+</ul>
+
+
+<h3>Playback Controls (all modalities)</h3>
+<ul>
+	<li>🪲 <a href="https://ifitdev.atlassian.net/browse/TROL-5147">TROL-5147</a> - Playback Tap state should not show Follow Trainer button</li>
+	<li>🪲 <a href="https://ifitdev.atlassian.net/browse/CRY-515">CRY-515</a> - Revert changes to inworkout charts widget and find a different solution for recovery behavior</li>
+</ul>
+
+
+<h3>Search Metrics Improvements</h3>
+<ul>
+	<li>🔖 <a href="https://ifitdev.atlassian.net/browse/TROL-5100">TROL-5100</a> - Update KTor Instances to Send Session ID</li>
+</ul>
+
+
+<h3>Stripe Link</h3>
+<ul>
+	<li>🔖 <a href="https://ifitdev.atlassian.net/browse/TROL-4997">TROL-4997</a> - Add configuration for displaying Stripe Link in One Click modal</li>
+</ul>
+
+
+<h3>Volume Simplification</h3>
+<ul>
+	<li>🪲 <a href="https://ifitdev.atlassian.net/browse/TROL-5076">TROL-5076</a> - No beep sounds when adjusting physical incline/speed during manual/VOD workouts, paused time, or when pressing the stop button (Xenon- except Ultra1/3)</li>
+</ul>
+
+
+<hr />
+
+<h2>Open Bugs</h2>
