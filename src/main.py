@@ -1,11 +1,10 @@
 import os
-from pathlib import Path
 
 import requests
 import status_mapping
 import google_services
 import confluence_report
-import matplotlib.pyplot as plt
+import charts
 from requests.auth import HTTPBasicAuth
 from dotenv import load_dotenv
 from datetime import datetime
@@ -23,7 +22,9 @@ load_dotenv()
 BUILD = os.getenv("BUILD_VERSION")
 JIRA_BASE_URL = os.getenv("JIRA_BASE_URL", "https://ifitdev.atlassian.net").rstrip("/")
 REQUEST_TIMEOUT_SECONDS = int(os.getenv("JIRA_REQUEST_TIMEOUT_SECONDS", "15"))
-SKIP_ROW_MARKERS = {"2026-01"}
+CURRENT_BUILD_PAGE_ID = os.getenv("CURRENT_BUILD_PAGE_ID")
+# Sometimes the trackers have non-ticket rows. Use this to ignore them
+SKIP_ROW_MARKERS = {"2026-01", "2026-02"}
 PAGE = "Tickets" # This could likely be hardcoded, but this is future-proofing
 STATUS_COLUMN = "F"
 LAST_CHECKED_COLUMN = "I"
@@ -172,11 +173,11 @@ def main():
 
      # Report stats from tracker-aligned values.
      status_counts = status_frequency(ticket_rows)
-     pi_chart_path = make_pie_chart(status_counts)
+     pi_chart_path = charts.make_pie_chart(status_counts, BUILD)
      difference_percentage = _safe_percentage(difference, len(ticket_rows))
 
      priority_counts = priority_frequency(ticket_rows)
-     bar_chart_path = make_bar_graph(priority_counts)
+     bar_chart_path = charts.make_bar_graph(priority_counts, BUILD)
      failed_bug_links = get_failed_bug_links(ticket_rows)
 
      # Report time taken to execute script
@@ -473,104 +474,6 @@ def priority_frequency(ticket_rows):
 
      return priority_counts
 
-# Create and save a pie chart based off of the stability of the sheet
-def make_pie_chart(status_counts):
-     """
-     Create and save a pie chart visualization of status counts.
-     Args:
-          status_counts (dict): A dictionary with status names as keys and their counts as values.
-     Returns:
-          pathlib.Path | None: Path to the saved chart image if created, else None.
-     Description:
-          Filters out statuses with zero counts, creates a pie chart with the remaining statuses,
-          and saves it as an image file with a timestamp. The chart includes percentage labels
-          and is rotated for better readability. Each status is mapped to a specific color.
-     Side Effects:
-          - Displays a pie chart using matplotlib
-          - Saves the figure to the 'images/' directory with format: {BUILD}_{timestamp}.png
-          - Prints a message confirming the file save location
-     """
-
-     # Map statuses to their corresponding colors
-     color_mapping = {
-          'passed': 'springgreen',
-          'failed': 'indianred',
-          'untestable': 'skyblue',
-          'in progress': 'yellow',
-          'monitoring': 'mediumorchid',
-          'blocked': 'orange',
-          '': 'gray' # Just in case there is any blank values
-     }
-     
-     filtered_counts = {}
-     colors = []
-     for key, val in status_counts.items():
-          if val > 0:
-               filtered_counts[key] = val
-               colors.append(color_mapping.get(key, "gray"))
-
-     if not filtered_counts:
-          print("No status counts available to chart.")
-          return None
-
-     plt.figure(figsize=(8, 8))
-     
-     plt.pie(filtered_counts.values(), labels=filtered_counts.keys(), autopct='%1.1f%%', startangle=45, rotatelabels=True, colors=colors) 
-     plt.title(f"Current Health of {BUILD}")
-
-     # Save the pie chart with datetime in ISO format
-     current_datetime = datetime.now()
-     formatted_datetime = current_datetime.strftime("%Y-%m-%d_%H-%M-%S")
-     fig_name = f"{BUILD}_PI_{formatted_datetime}.png"
-     output_dir = Path("images")
-     output_dir.mkdir(parents=True, exist_ok=True)
-     output_path = output_dir / fig_name
-     plt.savefig(output_path)
-     plt.close()
-
-     # print(f"Saved pie chart: {output_path}")
-     return output_path
-
-
-def make_bar_graph(priority_counts):
-     
-     # Map priorities to a corresponding color
-     color_mapping = {
-          'lowest': 'skyblue',
-          'low': 'lightblue',
-          'medium': 'yellow',
-          'high': 'orange',
-          'highest': 'red',
-     }
-
-     filtered_counts = {}
-     colors = []
-     for key, val in priority_counts.items():
-          if val > 0:
-               filtered_counts[key] = val
-               colors.append(color_mapping.get(key, "gray"))
-
-     if not filtered_counts:
-          print("No priority counts available to graph.")
-          return None
-     
-     plt.figure(figsize=(8, 8))
-
-     plt.bar(filtered_counts.keys(), filtered_counts.values(), color=colors)
-     plt.title(f"Priority Health of {BUILD}")
-
-     # Save the bar graph with datetime in ISO format
-     current_datetime = datetime.now()
-     formatted_datetime = current_datetime.strftime("%Y-%m-%d_%H-%M-%S")
-     fig_name = f"{BUILD}_BAR_{formatted_datetime}.png"
-     output_dir = Path("images")
-     output_dir.mkdir(parents=True, exist_ok=True)
-     output_path = output_dir / fig_name
-     plt.savefig(output_path)
-     plt.close()
-
-     # print(f"Saved bar chart: {output_path}")
-     return output_path
 
 if __name__ == "__main__":
      main()
