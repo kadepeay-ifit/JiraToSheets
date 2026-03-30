@@ -419,6 +419,26 @@ def check_jira_ticket_status(ticket_id):
                f"Unexpected Jira response shape for ticket '{ticket_id}'"
           ) from exc
 
+
+# This function is intended to go to the current build page, and add any tickets that aren't 
+# currently on the Tracker, to the Tracker
+def add_tickets_to_tracker():
+     url = f"{JIRA_BASE_URL}/wiki/api/v2/pages/{CURRENT_BUILD_PAGE_ID}?body-format=storage"
+     headers = {
+          "Accept": "application/json",
+          "Content-Type": "application/json"
+     }
+     auth = HTTPBasicAuth(USER_EMAIL, API_TOKEN)
+     response = requests.get(url, headers=headers, auth=auth, timeout=REQUEST_TIMEOUT_SECONDS)
+     response.raise_for_status()
+     page_data = response.json()
+
+     # Grab content from the page_data
+     title = page_data.get('title')
+     content = page_data.get('body', {}).get('storage', {}).get('value')
+     print(content)
+
+
 # Count Frequency of each status type
 def status_frequency(ticket_rows):
      """
@@ -476,4 +496,5 @@ def priority_frequency(ticket_rows):
 
 
 if __name__ == "__main__":
-     main()
+     # main()
+     add_tickets_to_tracker()
