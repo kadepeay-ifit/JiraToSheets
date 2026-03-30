@@ -442,22 +442,16 @@ def get_build_page_tickets():
      # Parse the content to get just bug information
      soup = BeautifulSoup(content, 'html.parser')
      dirty_bugs = soup.find_all('li')
-     clean_bugs = []
-     seen = set()
+     clean_bugs = {}
      for li in dirty_bugs:
-          if li not in seen:
-               # parts = li.split('-', 2)
-               # bug_title = f"{parts[0]-{parts[1]}}"
-               # bug_body = parts[2].strip()
-               # clean_bugs.add(bug_title, bug_body)
-               clean_bugs.append(li.get_text(strip=True)[1:])
-               seen.add(li)
-     
-     for bug in clean_bugs:
-          print(bug)
+          if li and li not in clean_bugs:
+               text_content = li.get_text(strip=True)
+               parts = text_content.split('-', 2)
+               bug_title = f"{parts[0]}-{parts[1]}"[1:]
+               bug_body = parts[2].strip()
+               clean_bugs[bug_title] = bug_body
 
      return(clean_bugs)
-     # TODO: Return list of bugs that are present on the build page. Later, these can be used to add missing bugs to the tracker
 
 def get_build():
      # Grab current build page data
