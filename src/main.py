@@ -438,14 +438,23 @@ def get_build_page_tickets():
 
      # Grab content from the page_data
      content = page_data.get('body', {}).get('storage', {}).get('value')
-     # print(content)
 
      # Parse the content to get just bug information
      soup = BeautifulSoup(content, 'html.parser')
      dirty_bugs = soup.find_all('li')
-     clean_bugs = [li.get_text(strip=True)[1:] for li in dirty_bugs]
-     # for index, item in enumerate(clean_bugs, 1):
-     #      print(f"{index}. {item}")
+     clean_bugs = []
+     seen = set()
+     for li in dirty_bugs:
+          if li not in seen:
+               # parts = li.split('-', 2)
+               # bug_title = f"{parts[0]-{parts[1]}}"
+               # bug_body = parts[2].strip()
+               # clean_bugs.add(bug_title, bug_body)
+               clean_bugs.append(li.get_text(strip=True)[1:])
+               seen.add(li)
+     
+     for bug in clean_bugs:
+          print(bug)
 
      return(clean_bugs)
      # TODO: Return list of bugs that are present on the build page. Later, these can be used to add missing bugs to the tracker
@@ -523,5 +532,5 @@ def priority_frequency(ticket_rows):
 
 
 if __name__ == "__main__":
-     main()
-     # get_build_page_tickets()
+     # main()
+     get_build_page_tickets()
