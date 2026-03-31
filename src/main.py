@@ -177,7 +177,6 @@ def main():
      # Print percentage difference between Sheets and Jira
      difference = calculate_difference(ticket_rows)
      
-     # TODO: Add new tickets to Tracker
      new_ticket_links = add_new_tickets(ticket_rows, build_page_tickets, creds)
 
      # Update Sheets
@@ -550,6 +549,7 @@ def get_build_page_tickets():
                bug_body = parts[2].strip()
                clean_bugs[bug_title] = bug_body
 
+     print("Retrieved build name and new tickets from build page.")
      # This returns both the Build number as well as the dictionary of bugs present on the build page
      return(build, clean_bugs)
 
