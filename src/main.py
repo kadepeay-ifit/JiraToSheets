@@ -152,11 +152,6 @@ def main():
 
      BUILD, build_page_tickets = get_build_page_tickets()
 
-     print(BUILD)
-     print()
-     for key, val in build_page_tickets.items():
-          print(f"{key}, {val}")
-
      # Get Credentials
      creds = google_services.get_credential_data()
 
@@ -442,6 +437,7 @@ def get_build_page_tickets():
      page_data = response.json()
 
      # Grab the build number from the page title
+     # This gets saved to a constant variable
      build = page_data.get('title', {}).split('|')[1].strip()
 
      # Grab content from the page_data
@@ -461,7 +457,6 @@ def get_build_page_tickets():
 
      # This returns both the Build number as well as the dictionary of bugs present on the build page
      return(build, clean_bugs)
-
 
 # Count Frequency of each status type
 def status_frequency(ticket_rows):
