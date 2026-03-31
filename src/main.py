@@ -170,6 +170,9 @@ def main():
      # Print percentage difference between Sheets and Jira
      difference = calculate_difference(ticket_rows)
      
+     # TODO: Add new tickets to Tracker
+     new_tickets = add_new_tickets(ticket_rows, build_page_tickets)
+
      # Update Sheets
      num_updated_rows = update_sheet_data(ticket_rows, creds, last_checked_value)
 
@@ -216,6 +219,11 @@ def main():
           failed_bugs=failed_bug_links,
           confluence_page_id=confluence_page_id,
      )
+
+def add_new_tickets(ticket_rows, build_page_tickets):
+     different_tickets = set(ticket_rows.items()) - set(build_page_tickets.items())
+     # TODO: Finish
+
 
 def update_sheet_data(ticket_rows, creds, last_checked_value):
     """
