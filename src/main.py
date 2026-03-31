@@ -93,6 +93,7 @@ def _print_run_summary(
      pie_chart_path,
      bar_chart_path,
      failed_bugs,
+     new_tickets,
      confluence_page_id,
 ):
      divider = "=" * 72
@@ -106,6 +107,7 @@ def _print_run_summary(
      print(f"Last checked written: {last_checked_value}")
      print(f"Execution time: {_format_duration(execution_seconds)}")
      print(f"Failed bugs: {len(failed_bugs)}")
+     print(f"New tickets added: {len(new_tickets)}")
      print(f"Pie chart: {pie_chart_path if pie_chart_path else 'not generated'}")
      print(f"Bar chart: {bar_chart_path if bar_chart_path else 'not generated'}")
      print(f"Confluence page: {confluence_page_id if confluence_page_id else 'not published'}")
@@ -128,6 +130,11 @@ def _print_run_summary(
           print("Failed bug links:")
           for failed_bug in failed_bugs:
                print(f" - {failed_bug['ticket']}: {failed_bug['url']}")
+     if new_tickets:
+          print("-" * 72)
+          print("New ticket links:")
+          for new_ticket in new_tickets:
+               print(f" - {new_ticket['ticket']}: {new_ticket['url']}")
      print(divider)
 
 def get_failed_bug_links(ticket_rows):
@@ -171,7 +178,7 @@ def main():
      difference = calculate_difference(ticket_rows)
      
      # TODO: Add new tickets to Tracker
-     new_tickets = add_new_tickets(ticket_rows, build_page_tickets)
+     new_ticket_links = add_new_tickets(ticket_rows, build_page_tickets, creds)
 
      # Update Sheets
      num_updated_rows = update_sheet_data(ticket_rows, creds, last_checked_value)
@@ -202,6 +209,7 @@ def main():
           bar_chart_path=bar_chart_path,
           last_checked_value=last_checked_value,
           failed_bug_links=failed_bug_links,
+          new_ticket_links=new_ticket_links,
      )
 
      _print_run_summary(
@@ -217,12 +225,58 @@ def main():
           pie_chart_path=pi_chart_path,
           bar_chart_path=bar_chart_path,
           failed_bugs=failed_bug_links,
+          new_tickets=new_ticket_links,
           confluence_page_id=confluence_page_id,
      )
 
-def add_new_tickets(ticket_rows, build_page_tickets):
-     different_tickets = set(ticket_rows.items()) - set(build_page_tickets.items())
-     # TODO: Finish
+def add_new_tickets(ticket_rows, build_page_tickets, creds):
+     existing_tickets = {
+          ticket_data.get("Ticket Name", "").strip()
+          for ticket_data in ticket_rows
+          if ticket_data.get("Ticket Name")
+     }
+     new_ticket_names = sorted(
+          ticket_name
+          for ticket_name in build_page_tickets
+          if ticket_name and ticket_name not in existing_tickets and ticket_name not in SKIP_ROW_MARKERS
+     )
+     if not new_ticket_names:
+          return []
+
+     try:
+          service = build("sheets", "v4", credentials=creds)
+          rows_to_append = []
+          for ticket_name in new_ticket_names:
+               rows_to_append.append(
+                    [
+                         ticket_name,
+                         build_page_tickets.get(ticket_name, ""),
+                         "",
+                         "",
+                         "",
+                         "",
+                         "",
+                         "",
+                         "",
+                    ]
+               )
+
+          body = {"values": rows_to_append}
+          service.spreadsheets().values().append(
+               spreadsheetId=SPREADSHEET_ID,
+               range=f"'{PAGE}'!A:I",
+               valueInputOption="USER_ENTERED",
+               insertDataOption="INSERT_ROWS",
+               body=body,
+          ).execute()
+     except HttpError as err:
+          print(f"Error adding new tickets: {err}")
+          return []
+
+     return [
+          {"ticket": ticket_name, "url": f"{JIRA_BASE_URL}/browse/{ticket_name}"}
+          for ticket_name in new_ticket_names
+     ]
 
 
 def update_sheet_data(ticket_rows, creds, last_checked_value):
