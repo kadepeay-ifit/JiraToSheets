@@ -1,69 +1,97 @@
-# About
-This project syncs Jira ticket statuses to a Google Sheets bug tracker and generates a stability pie chart report from tracker data.
+# Jira -> Sheets Tracker Sync
+
+This project compares Jira ticket status values against a Google Sheets tracker, updates the tracker, and generates run metrics/charts. It can also publish a run report to Confluence.
+
+## What the script does
+
+`src/main.py` runs this flow:
+
+1. Reads Jira and Google configuration from environment variables.
+2. Pulls tracker rows from Google Sheets.
+3. Looks up each Jira ticket status.
+4. Compares tracker status vs Jira status.
+5. Updates Google Sheets status and last-checked columns.
+6. Builds summary metrics and chart images.
+7. Optionally publishes a Confluence report.
 
 ## Prerequisites
-You need:
 
-- A Google Cloud OAuth client credential file (`credentials.json`)
-- A Jira/Atlassian API token
-- A user email for Jira API authentication
+- Python 3.10+
+- `credentials.json` (Google OAuth client credentials) in repository root
+- Jira/Atlassian API token
+- Jira user email
 
 ### Google Cloud setup
-In Google Cloud Console, go to **APIs & Services -> Credentials**, create OAuth credentials, download the JSON file, and save it as `credentials.json` in the repository root.
 
-### Jira token setup
-Create an API token in Atlassian account settings (**Security -> API tokens**), then add credentials to a local `.env` file (or GitHub secrets in CI).
+In Google Cloud Console:
 
-Example `.env`:
+1. Open **APIs & Services -> Credentials**
+2. Create an OAuth client
+3. Download the JSON file
+4. Save it as `credentials.json` at repo root
+
+## Configuration
+
+Create a local `.env` file (or set environment variables in CI).
+
+### Required for script execution
 
 ```bash
 API_TOKEN="your_jira_api_token"
 USER_EMAIL="your_email@example.com"
-BUILD_VERSION="Retail-2026-02"
 SPREADSHEET_ID="your_google_sheet_id"
-RANGE_NAME="A2:I"
-# Confluence publishing (optional)
-SPACE_KEY="your_confluence_space_key"
-PARENT_PAGE_ID="optional_parent_page_id"
-# Optional override (defaults to JIRA_BASE_URL)
-CONFLUENCE_BASE_URL="https://ifitdev.atlassian.net"
-# Optional timeout (seconds)
-CONFLUENCE_REQUEST_TIMEOUT_SECONDS=30
-# Optional
-JIRA_BASE_URL="https://ifitdev.atlassian.net"
-JIRA_REQUEST_TIMEOUT_SECONDS=15
+RANGE_NAME="Tickets!A2:I"
+CURRENT_BUILD_PAGE_ID="your_confluence_build_page_id"
 ```
 
-## Running the script
-Use Python 3.10+.
+### Optional settings
 
-Install dependencies:
+```bash
+# Jira
+JIRA_BASE_URL="https://ifitdev.atlassian.net"   # default shown
+JIRA_REQUEST_TIMEOUT_SECONDS=15                  # default: 15
+
+# Confluence publish (enabled only when SPACE_KEY is set)
+SPACE_KEY="your_confluence_space_key"
+PARENT_PAGE_ID="optional_parent_page_id"
+CONFLUENCE_BASE_URL="https://ifitdev.atlassian.net"  # default: JIRA_BASE_URL
+CONFLUENCE_REQUEST_TIMEOUT_SECONDS=30                 # default: 30
+```
+
+## Install and run
 
 ```bash
 pip3 install -r requirements.txt
-```
-
-Run:
-
-```bash
 python3 src/main.py
 ```
 
-On first run, Google OAuth will prompt for account authorization and create `token.json`.
+On first run, Google OAuth prompts for authorization and creates `token.json`.
+
+## Outputs
+
+- Google Sheets updates:
+  - Status column `F`
+  - Last Checked column `I`
+- Local charts in `images/`:
+  - `*_PI_*.png` (status pie chart)
+  - `*_BAR_*.png` (priority bar chart)
+- Console run summary (counts, differences, execution time, links for failed tickets)
 
 ## Confluence report publishing
-`src/main.py` now publishes a Confluence page automatically at the end of a run when these variables are configured: `USER_EMAIL`, `API_TOKEN`, and `SPACE_KEY`.
 
-- The page is created via Confluence REST API.
-- The generated charts from `images/` are uploaded as page attachments.
-- The page is updated to embed that uploaded attachment (instead of a local filesystem image path).
-- If Confluence variables are not configured, publishing is skipped safely.
+Publishing is attempted when `USER_EMAIL`, `API_TOKEN`, and `SPACE_KEY` are available.
 
-## File Descriptions
+- Creates a page using Confluence REST API.
+- Uploads generated chart images as page attachments.
+- Updates the page body to embed uploaded attachments.
+- Skips publishing safely if required Confluence settings are missing.
+
+## File overview
 
 | File | Purpose |
 |------|---------|
-| `src/main.py` | Entry point. Coordinates sync, comparison, status metrics, and chart generation. |
-| `src/google_services.py` | Google authentication and Sheets API read helpers. |
-| `src/status_mapping.py` | Mapping layer between Jira statuses and tracker statuses. |
-| `src/confluence_report.py` | Creates and publishes reported information to Confluence page. |
+| `src/main.py` | Entry point; orchestrates sync, comparison, updates, metrics, and reporting. |
+| `src/google_services.py` | Google OAuth + Sheets API helpers. |
+| `src/status_mapping.py` | Jira status to tracker status translation map. |
+| `src/charts.py` | Pie/bar chart generation and image export. |
+| `src/confluence_report.py` | Confluence page creation, attachment upload, and report publishing. |
