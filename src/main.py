@@ -247,11 +247,19 @@ def add_new_tickets(ticket_rows, build_page_tickets, creds):
           service = build("sheets", "v4", credentials=creds)
           rows_to_append = []
           for ticket_name in new_ticket_names:
+               ticket_url = f"{JIRA_BASE_URL}/browse/{ticket_name}"
+               ticket_formula = f'=HYPERLINK("{ticket_url}", "{ticket_name}")'
+               try:
+                    priority_value = check_jira_ticket_priority(ticket_name)
+               except (requests.exceptions.RequestException, ValueError) as exc:
+                    print(f"Unable to fetch Jira priority for {ticket_name}: {exc}")
+                    priority_value = "needs prioritization"
+
                rows_to_append.append(
                     [
-                         ticket_name,
+                         ticket_formula,
                          build_page_tickets.get(ticket_name, ""),
-                         "",
+                         priority_value.title(),
                          "",
                          "",
                          "",
@@ -277,6 +285,31 @@ def add_new_tickets(ticket_rows, build_page_tickets, creds):
           {"ticket": ticket_name, "url": f"{JIRA_BASE_URL}/browse/{ticket_name}"}
           for ticket_name in new_ticket_names
      ]
+
+
+def check_jira_ticket_priority(ticket_id):
+     """Retrieve normalized Jira priority for a ticket."""
+
+     url = f"{JIRA_BASE_URL}/rest/api/3/issue/{ticket_id}"
+     headers = {
+          "Accept": "application/json",
+          "Content-Type": "application/json"
+     }
+     auth = HTTPBasicAuth(USER_EMAIL, API_TOKEN)
+     response = requests.get(url, headers=headers, auth=auth, timeout=REQUEST_TIMEOUT_SECONDS)
+     response.raise_for_status()
+     ticket_data = response.json()
+
+     try:
+          priority_data = ticket_data["fields"].get("priority")
+          if not priority_data:
+               return "needs prioritization"
+          priority_name = priority_data.get("name", "").strip().lower()
+          return priority_name or "needs prioritization"
+     except (AttributeError, KeyError) as exc:
+          raise ValueError(
+               f"Unexpected Jira response shape for ticket '{ticket_id}' priority"
+          ) from exc
 
 
 def update_sheet_data(ticket_rows, creds, last_checked_value):
