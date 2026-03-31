@@ -40,7 +40,7 @@ Create a local `.env` file (or set environment variables in CI).
 API_TOKEN="your_jira_api_token"
 USER_EMAIL="your_email@example.com"
 SPREADSHEET_ID="your_google_sheet_id"
-RANGE_NAME="Tickets!A2:I"
+RANGE_NAME="'Tickets'!A2:I"
 CURRENT_BUILD_PAGE_ID="your_confluence_build_page_id"
 ```
 
