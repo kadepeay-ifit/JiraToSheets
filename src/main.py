@@ -177,6 +177,8 @@ def main():
      # Print percentage difference between Sheets and Jira
      difference = calculate_difference(ticket_rows)
      
+     # New tickets on build page
+     # Added to tracker, but not updated or used for chart creation
      new_ticket_links = add_new_tickets(ticket_rows, build_page_tickets, creds)
 
      # Update Sheets
@@ -533,7 +535,7 @@ def get_build_page_tickets():
      # Grab the build number from the page title
      # This gets saved to a constant variable
      build = page_data.get('title', {}).split('|')[1].strip()
-
+     
      # Grab content from the page_data
      content = page_data.get('body', {}).get('storage', {}).get('value')
 

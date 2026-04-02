@@ -62,7 +62,7 @@ def make_pie_chart(status_counts, BUILD):
      # print(f"Saved pie chart: {output_path}")
      return output_path
 
-
+# Make a bar graph based on the priorities of the tickets. 
 def make_bar_graph(priority_counts, BUILD):
      
      # Map priorities to a corresponding color
